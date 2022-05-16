@@ -1,0 +1,9 @@
+config.el
+*~
+eln-cache
+projects
+smex-items
+straight
+transient
+eshell
+.lsp-session-v1
