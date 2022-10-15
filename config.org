@@ -247,28 +247,8 @@ Here's how we start:
     )
   (require 'erlang-start)
 
-  (use-package lsp-mode
-    :init
-    (setq lsp-keymap-prefix "C-l")
-
-    :config
-    (add-hook 'erlang-mode-hook #'lsp)
-    (setq lsp-log-io t)
-    ;; (setq lsp-headerline-breadcrumb-mode nil)
-    (setq lsp-headerline-breadcrumb-enable nil)
-
-    (use-package lsp-ui
-      :config
-      (setq lsp-ui-sideline-enable t)
-      (setq lsp-ui-doc-enable t)
-      (setq lsp-ui-doc-position 'bottom)
-      )
-
-    (use-package lsp-origami
-      :hook ((origami-mode . lsp-origami-mode)
-             (erlang-mode . origami-mode))
-      )
-    )
+  (use-package eglot
+    :hook (erlang-mode . eglot-ensure))
 
 #+END_SRC
 
