@@ -1,14 +1,25 @@
 #+TITLE: srijan's emacs configuration
-#+STARTUP: content
+#+AUTHOR: Srijan Choudhary
+#+STARTUP: show2levels indent hidestars
 
 * Configuration :emacs:
+** Header
+
+This will generate a header at the top of the tangled file to indicate it is generated and is not meant to be modified directly.
+
+#+begin_src emacs-lisp :epilogue (format-time-string ";; Last generated on %c")
+
+;; -*- lexical-binding: t -*-
+;; This file has been generated from config.org file. DO NOT EDIT.
+
+#+end_src
 ** Starting up
 
 Here's how we start:
 #+NAME: startup
 #+begin_src emacs-lisp
-  (setq gc-cons-threshold (* 50 1000 1000))
-  (setq gc-cons-percentage 0.6)
+  ;; For speedup.
+  ;; (setq straight-check-for-modifications nil)
   ;; Setup straight
   (defvar bootstrap-version)
   (let ((bootstrap-file
@@ -17,7 +28,7 @@ Here's how we start:
     (unless (file-exists-p bootstrap-file)
       (with-current-buffer
           (url-retrieve-synchronously
-           "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+           "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
            'silent 'inhibit-cookies)
         (goto-char (point-max))
         (eval-print-last-sexp)))
@@ -30,7 +41,17 @@ Here's how we start:
   ;; Move customization variables to a separate file and load it
   (setq custom-file (locate-user-emacs-file "custom-vars.el"))
   (load custom-file 'noerror 'nomessage)
+  (setq-default native-comp-async-report-warnings-errors 'silent)
 
+#+END_SRC
+** System information
+#+BEGIN_SRC emacs-lisp
+  (defvar my-laptop-p (equal (system-name) "GGN001944"))
+  ;; (defvar my-server-p (and (equal (system-name) "localhost") (equal user-login-name "sacha")))
+  (defvar my-phone-p (not (null (getenv "ANDROID_ROOT")))
+    "If non-nil, GNU Emacs is running on Termux.")
+  (when my-phone-p (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3"))
+  (global-auto-revert-mode)  ; simplifies syncing
 #+END_SRC
 
 ** Personal Information
@@ -52,6 +73,106 @@ Here's how we start:
 
 #+END_SRC
 
+** NANO Emacs Theme
+
+#+BEGIN_SRC emacs-lisp
+
+  ;; TODO: Check if the below overrides even work
+  ;; (straight-use-package
+  ;;  '(nano-splash :type git :host github :repo "rougier/nano-splash"))
+  ;; (straight-use-package
+  ;;  '(nano-theme :type git :host github :repo "rougier/nano-theme"))
+  ;; (straight-use-package
+  ;;  '(nano-modeline :type git :host github :repo "rougier/nano-modeline"))
+
+  (use-package nano-emacs
+    :straight (:host github :repo "rougier/nano-emacs")
+    :no-require t
+    :init
+    (require 'nano-base-colors)
+    (require 'nano-colors)
+    (require 'nano-theme-light)
+    (require 'nano-theme-dark)
+    (require 'nano-layout)
+
+    (setq nano-font-size 14)
+    (require 'nano-faces)
+    (nano-faces)
+    (require 'nano-theme)
+    (nano-theme)
+
+    (require 'nano-defaults)
+    (require 'nano-session)
+    (require 'nano-modeline)
+    (require 'nano-bindings)
+    (require 'nano-counsel)
+    ;; (require 'nano-compact)
+    (require 'nano-splash)
+    (require 'nano-help)
+
+    (menu-bar-mode -1)
+
+    ;; Override some nano-defaults
+    (setq frame-title-format '("%b – Emacs"))
+    ;; (setq default-frame-alist
+    ;;       (append (list
+    ;;                '(height . nil)
+    ;;                '(width . nil))))
+
+
+    (let ((inhibit-message t))
+      (message "Welcome to GNU Emacs / N Λ N O edition")
+      (message (format "Initialization time: %s" (emacs-init-time))))
+    )
+
+
+#+END_SRC
+
+** Discovering things
+
+#+BEGIN_SRC emacs-lisp
+  (use-package helm-descbinds
+    :defer t
+    :if my-laptop-p
+    :bind (("C-h b" . helm-descbinds)
+           ("C-h w" . helm-descbinds)))
+  (use-package which-key
+    :config (which-key-mode))
+
+  (defun my-reload-emacs-configuration ()
+    (interactive)
+    (load-file "~/.config/nano-emacs/init.el"))
+#+END_SRC
+
+** TODO Needs to be categorized
+#+BEGIN_SRC emacs-lisp
+  (setq dictionary-server "localhost")
+  (use-package flyspell
+    :hook text-mode)
+#+END_SRC
+
+** Org mode
+
+#+BEGIN_SRC emacs-lisp
+  (use-package org
+    :straight (:type built-in)
+    :ensure org-plus-contrib
+    :custom
+    (org-directory "~/ndxrd-uxxs3/org/")
+    (org-agenda-files '("~/ndxrd-uxxs3/org/"))
+    (org-log-into-drawer t)
+    (org-startup-indented t)
+    (org-image-actual-width (list 500))
+    (org-startup-with-inline-images t)
+    (org-ellipsis " ▼")
+
+    :bind
+    ("C-c a" . org-agenda)
+    ("C-c c" . org-capture)
+    ("C-c l" . org-store-link)
+    )
+#+END_SRC
+
 ** Evil
 
 #+BEGIN_SRC emacs-lisp
@@ -60,6 +181,8 @@ Here's how we start:
     (setq evil-respect-visual-line-mode t)
     (setq evil-want-integration t) ;; This is optional since it's already set to t by default.
     (setq evil-want-keybinding nil)
+    (setq evil-undo-system 'undo-fu)
+
     :config
     (evil-mode 1)
 
@@ -94,6 +217,8 @@ Here's how we start:
     :config
     (evil-collection-init))
 
+  (use-package undo-fu)
+
 #+END_SRC
 
 ** Git
@@ -111,10 +236,16 @@ Here's how we start:
     )
 
   ;; Install the official Erlang mode
+  (add-to-list
+   'load-path (car (file-expand-wildcards
+                    "/usr/lib/erlang/lib/tools-*/emacs")))
   (use-package erlang
+    :straight nil
     :hook ((erlang-mode . linum-mode)
            (erlang-mode . column-number-mode))
+    :init
     )
+  (require 'erlang-start)
 
   (use-package lsp-mode
     :init
@@ -137,47 +268,24 @@ Here's how we start:
       :hook ((origami-mode . lsp-origami-mode)
              (erlang-mode . origami-mode))
       )
-
     )
 
 #+END_SRC
 
-** Nano Emacs Theme
-
-#+BEGIN_SRC emacs-lisp
-  (use-package nano-emacs
-    :straight (:host github :repo "rougier/nano-emacs")
-    :no-require t
-    :init
-    ;; (require 'nano-base-colors)
-    ;; (require 'nano-colors)
-    (require 'nano-theme-light)
-    (require 'nano-theme-dark)
-    (require 'nano-layout)
-    (require 'nano-faces)
-    (require 'nano-theme)
-
-    (setq nano-font-size 14)
-
-    (require 'nano-defaults)
-    (require 'nano-session)
-    (require 'nano-modeline)
-    (require 'nano-bindings)
-    (require 'nano-counsel)
-    ;; (require 'nano-splash)
-    ;; (require 'nano-help)
-
-    (nano-faces)
-    (nano-theme)
-    (menu-bar-mode -1)
-
-    (let ((inhibit-message t))
-      (message "Welcome to GNU Emacs / N Λ N O edition")
-      (message (format "Initialization time: %s" (emacs-init-time))))
-    )
-
-#+END_SRC
-
+** Docker and Kubernetes
+#+begin_src emacs-lisp
+  (use-package dockerfile-mode)
+  (use-package yaml-mode)
+  (use-package kubernetes
+    :ensure t
+    :commands (kubernetes-overview)
+    :config
+    (setq kubernetes-poll-frequency 3600
+          kubernetes-redraw-frequency 3600))
+  (use-package kubernetes-evil
+    :ensure t
+    :after kubernetes)
+#+end_src
 ** Ending Stuff
 #+BEGIN_SRC emacs-lisp
 
@@ -191,3 +299,6 @@ Here's how we start:
                        gcs-done)))
 
 #+END_SRC
+
+
+#  LocalWords:  NANO
