@@ -1,0 +1,732 @@
+#+TITLE: srijan's emacs configuration
+#+AUTHOR: Srijan Choudhary
+#+STARTUP: show2levels indent hidestars
+
+* Configuration                                                       :emacs:
+** Header
+This will generate a header at the top of the tangled file to indicate it is generated and is not meant to be modified directly.
+
+#+begin_src emacs-lisp :epilogue (format-time-string ";; Last generated on %c")
+
+;; -*- lexical-binding: t -*-
+;; This file has been generated from config.org file. DO NOT EDIT.
+
+#+end_src
+
+** Starting up
+Here's how we start:
+#+NAME: startup
+#+begin_src emacs-lisp
+  ;; For speedup.
+  ;; (setq straight-check-for-modifications nil)
+  ;; Setup straight
+  (defvar bootstrap-version)
+  (let ((bootstrap-file
+         (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+        (bootstrap-version 5))
+    (unless (file-exists-p bootstrap-file)
+      (with-current-buffer
+          (url-retrieve-synchronously
+           "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+           'silent 'inhibit-cookies)
+        (goto-char (point-max))
+        (eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage))
+
+  (straight-use-package 'use-package)
+  (use-package straight
+    :custom (straight-use-package-by-default t))
+
+  ;; Move customization variables to a separate file and load it
+  (setq custom-file (locate-user-emacs-file "custom-vars.el"))
+  (load custom-file 'noerror 'nomessage)
+  (setq-default native-comp-async-report-warnings-errors 'silent)
+
+#+END_SRC
+** System information
+#+BEGIN_SRC emacs-lisp
+  (defvar my-laptop-p (equal (system-name) "GGN001944"))
+  ;; (defvar my-server-p (and (equal (system-name) "localhost") (equal user-login-name "sacha")))
+  (defvar my-phone-p (not (null (getenv "ANDROID_ROOT")))
+    "If non-nil, GNU Emacs is running on Termux.")
+  (when my-phone-p (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3"))
+  (global-auto-revert-mode)  ; simplifies syncing
+#+END_SRC
+
+** Personal Information
+
+#+BEGIN_SRC emacs-lisp
+  (setq user-full-name "Srijan Choudhary"
+      user-mail-address "srijan4@gmail.com")
+#+END_SRC
+
+** Basics
+#+begin_src emacs-lisp
+
+  ;; TODO: move to org section
+  (setq org-support-shift-select t)
+
+  (setq inhibit-startup-message t)
+  (tool-bar-mode -1)
+  (tooltip-mode -1)
+  (scroll-bar-mode -1)
+  (menu-bar-mode -1)
+  (set-fringe-mode 10)
+
+  ;; (global-display-line-numbers-mode 1)
+
+  (load-theme 'modus-vivendi t)
+  ;; (load-theme 'modus-operandi t)
+  (hl-line-mode 1)
+  (blink-cursor-mode -1)
+
+  ;; Recent files
+  (recentf-mode 1)
+
+  ;; Minibuffer history
+  (setq history-length 100)
+  (savehist-mode 1)
+
+  ;; Remember and restore the last cursor location in opened files
+  (save-place-mode 1)
+
+  ;; Revert buffers when the underlying file has changed
+  (global-auto-revert-mode 1)
+  ;; Revert Dired and other buffers
+  (setq global-auto-revert-non-file-buffers t)
+
+  ;; Fonts
+  ;; (set-face-attribute 'default nil :font "RobotoMono Nerd Font" :height 140)
+  (set-face-attribute 'default nil :font "FiraCode Nerd Font Mono" :height 140)
+
+  (use-package diminish
+    :config (require 'diminish))
+
+  (use-package eldoc :diminish eldoc-mode)
+
+  ;; No message in scratch buffer
+  (setq initial-scratch-message nil)
+
+  ;; Kill current buffer (instead of asking first buffer name)
+  (global-set-key (kbd "C-x k") 'kill-current-buffer)
+
+  ;; M-n for new frame (M-n is unbound in vanilla emacs)
+  (defun new-frame ()
+    (interactive)
+    (select-frame (make-frame))
+    (switch-to-buffer "*scratch*"))
+  (global-set-key (kbd "M-n") 'new-frame)
+
+  ;; Fill column at 120
+  (setq fill-column 120)
+
+#+end_src
+** Backups
+#+begin_src emacs-lisp
+;; Backup
+(setq backup-directory-alist '(("." . "~/.backups"))
+      make-backup-files t     ; backup of a file the first time it is saved.
+      backup-by-copying t     ; don't clobber symlinks
+      version-control t       ; version numbers for backup files
+      delete-old-versions t   ; delete excess backup files silently
+      kept-old-versions 6     ; oldest versions to keep when a new numbered
+                              ;  backup is made (default: 2)
+      kept-new-versions 9     ; newest versions to keep when a new numbered
+                              ;  backup is made (default: 2)
+      auto-save-default t     ; auto-save every buffer that visits a file
+      auto-save-timeout 20    ; number of seconds idle time before auto-save
+                              ;  (default: 30)
+      auto-save-interval 200)  ; number of keystrokes between auto-saves
+                              ;  (default: 300)
+#+end_src
+** Evil
+#+BEGIN_SRC emacs-lisp
+  (use-package evil
+    :init
+    (setq evil-respect-visual-line-mode t)
+    (setq evil-want-integration t) ;; This is optional since it's already set to t by default.
+    (setq evil-want-keybinding nil)
+    (setq evil-undo-system 'undo-fu)
+
+    :config
+    (evil-mode 1)
+
+    ;; Prevents esc-key from translating to meta-key in terminal mode.
+    (setq evil-esc-delay 0)
+
+    (setq-default evil-shift-width 2)
+    (setq-default evil-symbol-word-search t)
+    (customize-set-variable 'evil-want-Y-yank-to-eol t)
+
+    (evil-add-command-properties #'org-open-at-point :jump t)
+
+    (evil-declare-key 'normal org-mode-map
+      "gk" 'outline-up-heading
+      "gj" 'outline-next-visible-heading
+      "H" 'org-beginning-of-line
+      "L" 'org-end-of-line
+      "t" 'org-todo
+      (kbd "<tab>") 'org-cycle
+      ",c" 'org-cycle
+      ",e" 'org-export-dispatch
+      ",n" 'outline-next-visible-heading
+      ",p" 'outline-previous-visible-heading
+      ",t" 'org-set-tags-command
+      ",u" 'outline-up-heading
+      "$" 'org-end-of-line
+      "^" 'org-beginning-of-line
+      "-" 'org-ctrl-c-minus ; change bullet style
+      ))
+
+  (use-package evil-collection
+    :diminish (evil-collection-unimpaired-mode)
+    :after evil
+    :ensure t
+    :config
+    (evil-collection-init))
+
+  (use-package undo-fu)
+
+  (use-package evil-org
+    :ensure t
+    :after org
+    :hook (org-mode . (lambda () evil-org-mode))
+    :config
+    (require 'evil-org-agenda)
+    (evil-org-agenda-set-keys))
+
+#+END_SRC
+** Term Mode Stuff
+#+begin_src emacs-lisp
+  (defun bb/setup-term-mode ()
+    (evil-local-set-key 'insert (kbd "C-r") 'bb/send-C-r))
+
+  (defun bb/send-C-r ()
+    (interactive)
+    (term-send-raw-string "\C-r"))
+
+  (add-hook 'term-mode-hook 'bb/setup-term-mode)
+
+  (use-package vterm)
+#+end_src
+** Org mode
+#+BEGIN_SRC emacs-lisp
+  (use-package org
+    :straight (:type built-in)
+    :ensure org-plus-contrib
+    :hook ((org-capture-mode . delete-other-windows)
+           (org-capture-mode . evil-insert-state))
+    :custom
+    (org-directory "~/ndxrd-uxxs3/org")
+    (org-agenda-files (list "inbox.org" "gtd.org" "tickler.org" "MobileInbox.org"))
+    ;; (org-default-notes-file (concat org-directory "/work.org"))
+    (org-capture-templates '(("i" "Inbox" entry (file "inbox.org")
+                              "* TODO %i%?\n/Entered on/ %U")
+                             ("@" "Inbox [mu4e]" entry (file "inbox.org")
+                              "* TODO <Process> \"%a\" %?\n/Entered on/ %U")
+                             ("T" "Tickler" entry
+                              (file+headline "~/ndxrd-uxxs3/org/tickler.org" "Tickler")
+                              "* %i%? \n %U")
+                             ("p" "Protocol" entry
+                              (file+headline "~/ndxrd-uxxs3/org/notes.org" "Inbox")
+                              "* %^{Title}\nSource: %u, %c\n #+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n\n%?")
+                             ("L" "Protocol Link" entry
+                              (file+headline "~/ndxrd-uxxs3/org/read-later.org" "Read Later")
+                              "* %:description%?\n%:link\nCaptured: %U\n"
+                              :immediate-finish t
+                              :empty-lines 1)
+                             ))
+    (org-refile-targets '(("~/ndxrd-uxxs3/org/gtd.org" :maxlevel . 3)
+                          ("~/ndxrd-uxxs3/org/someday.org" :level . 1)
+                          ("~/ndxrd-uxxs3/org/tickler.org" :maxlevel . 2)))
+    (org-todo-keywords '((sequence "TODO(t)" "WAITING(w)" "|" "DONE(d)" "CANCELLED(c)")))
+    (org-ellipsis " ▼")
+    (org-agenda-start-with-log-mode t)
+    (org-agenda-window-setup 'only-window)
+    (org-log-into-drawer t)
+    (org-log-done 'time)
+    (org-startup-indented t)
+    (org-image-actual-width (list 500))
+    (org-startup-with-inline-images t)
+    (org-clock-persist 'history)
+
+    :config
+    (require 'org-protocol)
+    (defun org-capture-inbox ()
+      (interactive)
+      (call-interactively 'org-store-link)
+      (org-capture nil "i"))
+    (defun org-capture-mail ()
+      (interactive)
+      (call-interactively 'org-store-link)
+      (org-capture nil "@"))
+
+    (defun my/delete-capture-frame (&rest _)
+      "Delete frame with its name frame-parameter set to \"capture\"."
+      (if (equal "desktop-capture" (frame-parameter nil 'name))
+          (delete-frame)))
+    (advice-add 'org-capture-finalize :after #'my/delete-capture-frame)
+
+    (advice-add 'org-open-at-point :before #'evil-set-jump)
+
+    (org-clock-persistence-insinuate)
+    (defun current-clock-time-to-file ()
+      (interactive)
+      (with-temp-file "~/.local/state/task"
+        (if (org-clocking-p)
+            (insert (org-clock-get-clock-string))
+          (insert "No Task"))))
+    (run-with-timer 1 60 'current-clock-time-to-file)
+    (add-hook 'org-clock-in-hook 'current-clock-time-to-file)
+    (add-hook 'org-clock-out-hook 'current-clock-time-to-file)
+
+    :bind
+    ("C-c i" . org-capture-inbox)
+    ("C-c a" . org-agenda)
+    ("C-c c" . org-capture)
+    ("C-c l" . org-store-link)
+    )
+
+#+END_SRC
+** Learning & Discovering
+#+begin_src emacs-list
+  (use-package command-log-mode
+   :config
+   (global-command-log-mode))
+
+  (defun my-reload-emacs-configuration ()
+    (interactive)
+    (load-file "~/.config/nano-emacs/init.el"))
+#+end_src
+** Create awesome command combos and menus with hydra
+#+begin_src emacs-lisp
+  (use-package hydra
+    :straight t)
+
+  (use-package use-package-hydra
+    :straight t)
+
+  (defhydra hydra-straight-helper (:hint nil :color pink)
+            "
+  _c_: check all       _f_: fetch all     _m_: merge all       _n_: normalize all      _u_: push all
+  _C_: check package   _F_: fetch package _M_: merge package   _N_: normalize package  _U_: push package
+  _r_: rebuild all     _p_: pull all      _w_: watcher start   _g_: get recipe         _v_: versions freeze
+  _R_: rebuild package _P_: pull package  _W_: watcher quit    _e_: prune build        _q_: quit
+  "
+            ("c" straight-check-all)
+            ("C" straight-check-package)
+            ("r" straight-rebuild-all)
+            ("R" straight-rebuild-package)
+            ("f" straight-fetch-all)
+            ("F" straight-fetch-package)
+            ("p" straight-pull-all)
+            ("P" straight-pull-package)
+            ("m" straight-merge-all)
+            ("M" straight-merge-package)
+            ("n" straight-normalize-all)
+            ("N" straight-normalize-package)
+            ("u" straight-push-all)
+            ("U" straight-push-package)
+            ("w" straight-watcher-start)
+            ("W" straight-watcher-quit)
+            ("g" straight-get-recipe)
+            ("e" straight-prune-build)
+            ("v" straight-freeze-versions)
+            ("q" nil :color blue))
+
+#+end_src
+** Search
+#+BEGIN_SRC emacs-lisp
+  ;; (straight-use-package 'counsel)
+  ;; (straight-use-package 'smex)
+
+  (use-package selectrum
+    :config
+    (selectrum-mode +1))
+  (use-package selectrum-prescient
+    :config
+    ;; to make sorting and filtering more intelligent
+    (selectrum-prescient-mode +1)
+
+    ;; to save your command history on disk, so the sorting gets more
+    ;; intelligent over time
+    (prescient-persist-mode +1))
+
+  (use-package marginalia
+    :config
+    (marginalia-mode))
+
+  (use-package embark
+    :bind
+    (("C-." . embark-act)         ;; pick some comfortable binding
+     ("C-;" . embark-dwim)        ;; good alternative: M-.
+     ("C-h B" . embark-bindings)) ;; alternative for `describe-bindings'
+
+    :init
+
+    ;; Optionally replace the key help with a completing-read interface
+    (setq prefix-help-command #'embark-prefix-help-command)
+
+    :config
+
+    ;; Hide the mode line of the Embark live/completions buffers
+    (add-to-list 'display-buffer-alist
+                 '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                   nil
+                   (window-parameters (mode-line-format . none)))))
+
+  ;; Consult users will also want the embark-consult package.
+  (use-package embark-consult
+    :ensure t ; only need to install it, embark loads it after consult if found
+    :hook
+    (embark-collect-mode . consult-preview-at-point-mode))
+
+  ;; Focus issues with emacs on xwayland on sway
+  ;; (use-package mini-frame
+  ;;   :custom
+  ;;   (mini-frame-show-parameters '((top . 30) (width . 0.7) (left . 0.5)))
+  ;;   :config
+  ;;   (mini-frame-mode))
+
+#+END_SRC
+** Dictionary and spelling
+#+BEGIN_SRC emacs-lisp
+  (setq dictionary-server "localhost")
+  (use-package flyspell
+    :hook text-mode)
+#+END_SRC
+** Github copilot
+#+begin_src emacs-lisp
+  (use-package copilot
+    :diminish
+    :straight (:host github :repo "zerolfx/copilot.el" :files ("dist" "*.el"))
+    :ensure t
+    :hook (prog-mode . copilot-mode)
+    :bind (("C-TAB" . 'copilot-accept-completion-by-word)
+           ("C-<tab>" . 'copilot-accept-completion-by-word)
+           :map copilot-completion-map
+           ("<tab>" . 'copilot-accept-completion)
+           ("TAB" . 'copilot-accept-completion))
+    )
+#+end_src
+** Wakatime
+#+begin_src emacs-lisp
+  (use-package wakatime-mode
+    :diminish
+    :custom
+    (wakatime-api-key "b5c55552-1410-40ad-bc00-0c5693b8b522")
+    :config
+    (global-wakatime-mode)
+    )
+#+end_src
+
+** Misc software dev packages
+#+BEGIN_SRC emacs-lisp
+  (use-package markdown-mode
+    :mode ("README\\.md\\'" . gfm-mode)
+    :init (setq markdown-command "multimarkdown"))
+  (use-package magit)
+  (use-package json-mode)
+#+END_SRC
+** Erlang & LSP
+#+BEGIN_SRC emacs-lisp
+  (use-package yasnippet
+    :diminish (yas-minor-mode)
+    :config
+    (yas-global-mode t)
+    )
+
+  ;; Install the official Erlang mode
+  (add-to-list
+   'load-path (car (file-expand-wildcards
+                    "/usr/lib/erlang/lib/tools-*/emacs")))
+  (use-package erlang
+    :straight nil
+    :hook ((erlang-mode . linum-mode)
+           (erlang-mode . column-number-mode))
+    :init
+    )
+  (require 'erlang-start)
+
+  (use-package eglot
+    :hook (erlang-mode . eglot-ensure)
+    :config
+    (add-hook 'eglot-managed-mode-hook
+              (lambda ()
+                ;; Show flymake diagnostics first.
+                (setq eldoc-documentation-functions
+                      (cons #'flymake-eldoc-function
+                            (remove #'flymake-eldoc-function eldoc-documentation-functions)))
+                ;; Show all eldoc feedback.
+                (setq eldoc-documentation-strategy #'eldoc-documentation-compose)))
+    )
+#+END_SRC
+** Docker and Kubernetes
+#+begin_src emacs-lisp
+  (use-package dockerfile-mode)
+  (use-package yaml-mode)
+  (use-package kubernetes
+    :ensure t
+    :commands (kubernetes-overview)
+    :config
+    (setq kubernetes-poll-frequency 3600
+          kubernetes-redraw-frequency 3600))
+  (use-package kubernetes-evil
+    :ensure t
+    :after kubernetes)
+#+end_src
+
+** mu4e
+#+begin_src emacs-lisp
+  (use-package mu4e
+    :config
+    (setq
+     mu4e-get-mail-command "systemctl --user start mbsync.service" ;; "mbsync fastmail-all"
+     mu4e-view-prefer-html t
+     ;; mu4e-update-interval 180
+     mu4e-headers-auto-update nil
+     mu4e-compose-signature-auto-include nil
+     mu4e-compose-format-flowed t
+     )
+
+    ;; enable inline images
+    (setq mu4e-view-show-images t)
+
+    ;; use imagemagick, if available
+    (when (fboundp 'imagemagick-register-types)
+      (imagemagick-register-types))
+
+    ;; every new email composition gets its own frame!
+    (setq mu4e-compose-in-new-frame t)
+
+    ;; don't save message to Sent Messages, IMAP takes care of this
+    (setq mu4e-sent-messages-behavior 'sent)
+
+    (add-hook 'mu4e-view-mode-hook #'visual-line-mode)
+
+    ;; <tab> to navigate to links, <RET> to open them in browser
+    (add-hook 'mu4e-view-mode-hook
+              (lambda()
+                ;; try to emulate some of the eww key-bindings
+                (local-set-key (kbd "<RET>") 'mu4e~view-browse-url-from-binding)
+                (local-set-key (kbd "<tab>") 'shr-next-link)
+                (local-set-key (kbd "<backtab>") 'shr-previous-link)))
+
+    ;; spell check
+    (add-hook 'mu4e-compose-mode-hook
+              (defun my-do-compose-stuff ()
+                "My settings for message composition."
+                (visual-line-mode)
+                ;; (org-mu4e-compose-org-mode)
+                (use-hard-newlines -1)
+                (flyspell-mode)))
+
+    ;;rename files when moving
+    ;;NEEDED FOR MBSYNC
+    (setq mu4e-change-filenames-when-moving t)
+
+    ;; bookmarks
+    (add-to-list 'mu4e-bookmarks
+                 '( :name  "Sent Items"
+                    :query "maildir:\"/fastmail/Sent Items\""
+                    :key   ?s))
+    (add-to-list 'mu4e-bookmarks
+                 '( :name  "JIRA"
+                    :query "maildir:/fastmail/JIRA"
+                    :key   ?j))
+    (add-to-list 'mu4e-bookmarks
+                 '( :name  "Code"
+                    :query "maildir:/fastmail/Code"
+                    :key   ?c))
+    (add-to-list 'mu4e-bookmarks
+                 '( :name  "Inbox GO"
+                    :query "maildir:\"/fastmail/Inbox GO\""
+                    :key   ?g))
+    (add-to-list 'mu4e-bookmarks
+                 '( :name  "Inbox"
+                    :query "maildir:/fastmail/INBOX"
+                    :key   ?i))
+
+    (setq mu4e-attachment-dir  "~/Downloads")
+
+    (setq user-full-name "Srijan Choudhary"
+          mu4e-sent-folder "/fastmail/Sent Items"
+          mu4e-drafts-folder "/fastmail/Drafts"
+          mu4e-trash-folder "/fastmail/Trash"
+          mu4e-refile-folder "/fastmail/Archive"
+          )
+
+    ;; set mail user agent
+    (setq mail-user-agent 'mu4e-user-agent
+          message-mail-user-agent 'mu4e-user-agent)
+
+    ;; Setup mu4e contexts. This is to enable adding multiple email contexts if needed in the future.
+    ;; I will initially only enable my fastmail context but adding a new one shouldn't be harder than copying
+    ;; the existing context and modifying the settings.
+    (setq mu4e-context-policy 'pick-first)
+    (setq mu4e-compose-context-policy 'ask)
+    (setq mu4e-contexts
+          (list
+           (make-mu4e-context
+            :name "fastmail"
+            :enter-func (lambda () (mu4e-message "Entering context fastmail"))
+            :leave-func (lambda () (mu4e-message "Leaving context fastmail"))
+            :match-func (lambda (msg)
+                          (when msg
+                            (mu4e-message-contact-field-matches
+                             msg '(:from :to :cc :bcc) "srijan@fastmail.com")))
+            :vars '((user-mail-address . "srijan@fastmail.com")
+                    ;; (mu4e-compose-signature . (concat "Srijan Choudhary\n" "https://www.srijn.net\n"))
+                    (mu4e-compose-format-flowed . t)
+                    ))
+           (make-mu4e-context
+            :name "personal"
+            :enter-func (lambda () (mu4e-message "Entering context personal"))
+            :leave-func (lambda () (mu4e-message "Leaving context personal"))
+            :match-func (lambda (msg)
+                          (when msg
+                            (mu4e-message-contact-field-matches
+                             msg '(:from :to :cc :bcc) "srijan4@gmail.com")))
+            :vars '((user-mail-address . "srijan4@gmail.com")
+                    ;; (mu4e-compose-signature . (concat "Srijan Choudhary\n" "https://www.srijn.net\n"))
+                    (mu4e-compose-format-flowed . t)
+                    ))
+           (make-mu4e-context
+            :name "greyorange"
+            :enter-func (lambda () (mu4e-message "Entering context greyorange"))
+            :leave-func (lambda () (mu4e-message "Leaving context greyorange"))
+            :match-func (lambda (msg)
+                          (when msg
+                            (mu4e-message-contact-field-matches
+                             msg '(:from :to :cc :bcc) "srijan.c@greyorange.com")))
+            :vars '((user-mail-address . "srijan.c@greyorange.com")
+                    ;; (mu4e-compose-signature . (concat "Srijan Choudhary\n" "https://www.srijn.net\n"))
+                    (mu4e-compose-format-flowed . t)
+                    ))
+           ))
+    )
+  (use-package org
+    :bind (
+           :map mu4e-headers-mode-map
+           ("C-c i" . org-capture-mail)
+           :map mu4e-view-mode-map
+           ("C-c i" . org-capture-mail))
+    )
+
+  (use-package org-msg
+    :config
+    (setq org-msg-options "html-postamble:nil H:5 num:nil ^:{} toc:nil author:nil email:nil \\n:t"
+          org-msg-startup "hidestars indent inlineimages"
+          org-msg-default-alternatives '((new             . (text html))
+                                         (reply-to-html   . (text html))
+                                         (reply-to-text   . (text)))
+          org-msg-convert-citation t
+          org-msg-signature "
+
+    ,#+begin_signature
+    --
+    ,*Srijan Choudhary*
+    ,#+end_signature")
+    (org-msg-mode)
+    )
+
+  (use-package smtpmail
+    :config
+
+    (setq sendmail-program "/usr/bin/msmtp"
+          send-mail-function 'smtpmail-send-it
+          message-sendmail-f-is-evil t
+          ;; This allows msmtp to automatically choose the correct account
+          ;; based on from header.
+          message-sendmail-extra-arguments '("--read-envelope-from")
+          message-send-mail-function 'message-send-mail-with-sendmail
+          smtpmail-debug-info t
+          smtpmail-debug-verbose t
+          )
+
+    (setq smtpmail-queue-mail nil)
+    (setq smtpmail-queue-dir "~/Maildir/queue/cur")
+    )
+#+end_src
+
+** COMMENT Org journal
+#+begin_src emacs-lisp
+  (use-package org-journal
+    :custom
+    (org-journal-dir "~/ndxrd-uxxs3/org/journal"))
+#+end_src
+** Trying EXWM
+#+begin_src emacs-lisp
+  (use-package exwm
+    :config
+    )
+  (defun my/start-exwm ()
+    (interactive)
+    ;; (require 'exwm-config)
+    ;; (exwm-config-default)
+    (setq display-time-default-load-average nil)
+    (display-time-mode t)
+    (require 'exwm)
+    (setq exwm-workspace-number 4)
+    (add-hook 'exwm-update-class-hook
+              (lambda ()
+                (unless (or (string-prefix-p "sun-awt-X11-" exwm-instance-name)
+                            (string= "gimp" exwm-instance-name))
+                  (exwm-workspace-rename-buffer exwm-class-name))))
+    (add-hook 'exwm-update-title-hook
+              (lambda ()
+                (when (or (not exwm-instance-name)
+                          (string-prefix-p "sun-awt-X11-" exwm-instance-name)
+                          (string= "gimp" exwm-instance-name))
+                  (exwm-workspace-rename-buffer exwm-title))))
+
+    (setq exwm-input-global-keys
+          `(
+            ;; Bind "s-r" to exit char-mode and fullscreen mode.
+            ([?\s-r] . exwm-reset)
+            ;; Bind "s-w" to switch workspace interactively.
+            ([?\s-w] . exwm-workspace-switch)
+            ;; Bind "s-0" to "s-9" to switch to a workspace by its index.
+            ,@(mapcar (lambda (i)
+                        `(,(kbd (format "s-%d" i)) .
+                          (lambda ()
+                            (interactive)
+                            (exwm-workspace-switch-create ,i))))
+                      (number-sequence 0 9))
+            ;; Bind "s-&" to launch applications ('M-&' also works if the output
+            ;; buffer does not bother you).
+            ([?\s-&] . (lambda (command)
+                         (interactive (list (read-shell-command "$ ")))
+                         (start-process-shell-command command nil command)))
+            ;; Bind "s-<f2>" to "slock", a simple X display locker.
+            ([s-f2] . (lambda ()
+                        (interactive)
+                        (start-process "" nil "/usr/bin/slock")))))
+    (define-key exwm-mode-map [?\C-q] #'exwm-input-send-next-key)
+    (exwm-enable)
+    (require 'exwm-systemtray)
+    (exwm-systemtray-enable)
+
+    (setq window-divider-default-right-width 1)
+    (window-divider-mode)
+    )
+
+#+end_src
+** Ending Stuff
+#+BEGIN_SRC emacs-lisp
+  (setq gc-cons-threshold (* 2 1000 1000))
+  (add-hook 'emacs-startup-hook
+            (lambda ()
+              (message "Emacs ready in %s with %d garbage collections."
+                       (format "%.2f seconds"
+                               (float-time
+                                (time-subtract after-init-time before-init-time)))
+                       gcs-done)))
+
+  (let ((inhibit-message t))
+    (message "Welcome to GNU Emacs / N Λ N O edition")
+    (message (format "Initialization time: %s" (emacs-init-time))))
+#+END_SRC
+
+
+#  LocalWords:  NANO
