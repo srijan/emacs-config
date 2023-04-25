@@ -75,8 +75,33 @@ Here's how we start:
 
   ;; (global-display-line-numbers-mode 1)
 
+  (use-package doom-themes
+    :disabled t
+    :ensure t
+    :config
+    ;; Global settings (defaults)
+    (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
+          doom-themes-enable-italic t) ; if nil, italics is universally disabled
+
+    (load-theme 'doom-Iosvkem t)
+
+    ;; Enable flashing mode-line on errors
+    (doom-themes-visual-bell-config)
+    ;; Enable custom neotree theme (all-the-icons must be installed!)
+    (doom-themes-neotree-config)
+    ;; or for treemacs users
+    (setq doom-themes-treemacs-theme "doom-atom") ; use "doom-colors" for less minimal icon theme
+    (doom-themes-treemacs-config)
+    ;; Corrects (and improves) org-mode's native fontification.
+    (doom-themes-org-config))
+
+  ;; (load-theme 'doom-one t)
   (load-theme 'modus-vivendi t)
   ;; (load-theme 'modus-operandi t)
+  ;; (use-package dracula-theme
+  ;;   :config
+  ;;   (load-theme 'dracula t))
+
   (hl-line-mode 1)
   (blink-cursor-mode -1)
 
@@ -97,7 +122,7 @@ Here's how we start:
 
   ;; Fonts
   ;; (set-face-attribute 'default nil :font "RobotoMono Nerd Font" :height 140)
-  (set-face-attribute 'default nil :font "FiraCode Nerd Font Mono" :height 140)
+  (set-face-attribute 'default nil :font "FiraCode Nerd Font Mono" :height 120)
 
   (use-package diminish
     :config (require 'diminish))
@@ -141,6 +166,8 @@ Here's how we start:
 #+end_src
 ** Evil
 #+BEGIN_SRC emacs-lisp
+  (use-package undo-fu)
+
   (use-package evil
     :init
     (setq evil-respect-visual-line-mode t)
@@ -179,13 +206,14 @@ Here's how we start:
       ))
 
   (use-package evil-collection
+    ;; :straight '(evil-collection :host github
+    ;;                             :repo "meliache/evil-collection"
+    ;;                             :branch "mu4e-development")
     :diminish (evil-collection-unimpaired-mode)
-    :after evil
+    :after evil mu4e
     :ensure t
     :config
     (evil-collection-init))
-
-  (use-package undo-fu)
 
   (use-package evil-org
     :ensure t
@@ -208,6 +236,13 @@ Here's how we start:
   (add-hook 'term-mode-hook 'bb/setup-term-mode)
 
   (use-package vterm)
+#+end_src
+** Modeline
+#+begin_src emacs-lisp
+  (use-package all-the-icons)
+  (use-package doom-modeline
+    :config
+    (doom-modeline-mode 1))
 #+end_src
 ** Org mode
 #+BEGIN_SRC emacs-lisp
@@ -246,7 +281,7 @@ Here's how we start:
     (org-log-into-drawer t)
     (org-log-done 'time)
     (org-startup-indented t)
-    (org-image-actual-width (list 500))
+    (org-image-actual-width nil) ;;((list 500))
     (org-startup-with-inline-images t)
     (org-clock-persist 'history)
 
@@ -288,6 +323,148 @@ Here's how we start:
     )
 
 #+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+  (use-package dash)
+  (setq org-archive-default-command #'org-archive-subtree-hierarchically)
+
+  (defun org-archive-subtree-hierarchically (&optional prefix)
+    (interactive "P")
+    (let* ((fix-archive-p (and (not prefix)
+                               (not (use-region-p))))
+           (afile  (car (org-archive--compute-location
+                         (or (org-entry-get nil "ARCHIVE" 'inherit) org-archive-location))))
+           (buffer (or (find-buffer-visiting afile) (find-file-noselect afile))))
+      (org-archive-subtree prefix)
+      (when fix-archive-p
+        (with-current-buffer buffer
+          (goto-char (point-max))
+          (while (org-up-heading-safe))
+          (let* ((olpath (org-entry-get (point) "ARCHIVE_OLPATH"))
+                 (path (and olpath (split-string olpath "/")))
+                 (level 1)
+                 tree-text)
+            (when olpath
+              (org-mark-subtree)
+              (setq tree-text (buffer-substring (region-beginning) (region-end)))
+              (let (this-command (inhibit-message t)) (org-cut-subtree)) ; we don’t want to see "Cut subtree" messages
+              (goto-char (point-min))
+              (save-restriction
+                (widen)
+                (-each path
+                  (lambda (heading)
+                    (if (re-search-forward
+                         (rx-to-string
+                          `(: bol (repeat ,level "*") (1+ " ") ,heading)) nil t)
+                        (org-narrow-to-subtree)
+                      (goto-char (point-max))
+                      (unless (looking-at "^")
+                        (insert "\n"))
+                      (insert (make-string level ?*)
+                              " "
+                              heading
+                              "\n"))
+                    (cl-incf level)))
+                (widen)
+                (org-end-of-subtree t t)
+                (org-paste-subtree level tree-text))))))))
+
+#+END_SRC
+** File tree
+#+begin_src emacs-lisp
+  (use-package treemacs
+    :init
+    (with-eval-after-load 'winum
+      (define-key winum-keymap (kbd "M-0") #'treemacs-select-window))
+    :config
+    (defun my-treemacs-toggle ()
+      "Initialize or toggle treemacs.
+  Ensures that only the current project is present and all other projects have
+  been removed.
+  Use `treemacs' command for old functionality."
+      (interactive)
+      (pcase (treemacs-current-visibility)
+        (`visible (delete-window (treemacs-get-local-window)))
+        (_ (treemacs-add-and-display-current-project))))
+    :custom
+    (treemacs-follow-after-init t)
+    (treemacs-is-never-other-window t)
+    (treemacs-follow-mode -1)
+    :bind
+    (:map global-map
+          ("M-0"       . treemacs-select-window)
+          ("C-x t 1"   . treemacs-delete-other-windows)
+          ("C-x t t"   . my-treemacs-toggle)
+          ("C-x t d"   . treemacs-select-directory)
+          ("C-x t B"   . treemacs-bookmark)
+          ("C-x t C-t" . treemacs-find-file)
+          ("C-x t M-t" . treemacs-find-tag))
+    )
+  (use-package treemacs-evil
+    :after (treemacs evil)
+    :ensure t)
+
+  (use-package treemacs-icons-dired
+    :hook (dired-mode . treemacs-icons-dired-enable-once)
+    :ensure t)
+
+  (use-package treemacs-magit
+    :after (treemacs magit)
+    :ensure t)
+  #+end_src
+** Presentations
+#+begin_src emacs-lisp
+  (use-package org-tree-slide)
+
+  (use-package visual-fill-column
+    :custom
+    (visual-fill-column-width 90)
+    (visual-fill-column-center-text t))
+
+  (defun my/org-present-start ()
+    ;; Center the presentation and wrap lines
+    (visual-fill-column-mode 1)
+    (visual-line-mode 1)
+    (setq-local face-remapping-alist
+                '((default (:height 1.5) variable-pitch)
+                  (header-line (:height 4.0) variable-pitch)
+                  (org-document-title (:height 1.75) org-document-title)
+                  (org-code (:height 1.55) org-code)
+                  (org-verbatim (:height 1.55) org-verbatim)
+                  (org-block (:height 1.25) org-block)
+                  (org-block-begin-line (:height 0.7) org-block)))
+    (setq header-line-format " ")
+    )
+  (defun my/org-present-end ()
+    ;; Stop centering the document
+    (visual-fill-column-mode 0)
+    (visual-line-mode 0)
+    ;; (setq-local face-remapping-alist '((default variable-pitch default)))
+    (setq-local face-remapping-alist 'nil)
+    (setq header-line-format nil)
+    )
+
+  (use-package org-present
+    :hook
+    (org-present-mode . my/org-present-start)
+    (org-present-mode-quit . my/org-present-end)
+    )
+      #+end_src
+** Workspaces
+#+begin_src emacs-lisp
+  (use-package perspective
+    :demand t
+    :bind (("C-M-k" . persp-switch)
+           ("C-M-n" . persp-next)
+           ("C-x k" . persp-kill-buffer*))
+    :custom
+    (persp-initial-frame-name "Main")
+    (persp-mode-prefix-key (kbd "C-c p"))
+    :config
+    ;; Running `persp-mode' multiple times resets the perspective list...
+    (unless (equal persp-mode t)
+      (persp-mode)))
+  #+end_src
 ** Learning & Discovering
 #+begin_src emacs-list
   (use-package command-log-mode
@@ -335,10 +512,8 @@ Here's how we start:
             ("q" nil :color blue))
 
 #+end_src
-** Search
+** COMMENT Completions based on selectrum
 #+BEGIN_SRC emacs-lisp
-  ;; (straight-use-package 'counsel)
-  ;; (straight-use-package 'smex)
 
   (use-package selectrum
     :config
@@ -389,12 +564,154 @@ Here's how we start:
   ;;   (mini-frame-mode))
 
 #+END_SRC
+** Completions - vertico & friends
+#+begin_src emacs-lisp
+  (use-package savehist
+    :config
+    (setq history-length 25)
+    (savehist-mode 1))
+
+  (defun dw/minibuffer-backward-kill (arg)
+    "When minibuffer is completing a file name delete up to parent
+      folder, otherwise delete a word"
+    (interactive "p")
+    (if minibuffer-completing-file-name
+        ;; Borrowed from https://github.com/raxod502/selectrum/issues/498#issuecomment-803283608
+        (if (string-match-p "/." (minibuffer-contents))
+            (zap-up-to-char (- arg) ?/)
+          (delete-minibuffer-contents))
+      (backward-kill-word arg)))
+
+  (use-package vertico
+    :straight '(vertico :host github
+                        :repo "minad/vertico"
+                        :branch "main")
+    :bind (:map vertico-map
+                ("C-j" . vertico-next)
+                ("C-k" . vertico-previous)
+                ("C-f" . vertico-exit)
+                :map minibuffer-local-map
+                ("M-h" . dw/minibuffer-backward-kill))
+    :custom
+    (vertico-cycle t)
+    ;; :custom-face
+    ;; (vertico-current ((t (:background "#3a3f5a"))))
+    :init
+    (vertico-mode))
+
+  (use-package corfu
+    :straight '(corfu :host github
+                      :repo "minad/corfu")
+    :bind (:map corfu-map
+                ("C-j" . corfu-next)
+                ("C-k" . corfu-previous)
+                ("C-f" . corfu-insert))
+    :custom
+    (corfu-cycle t)
+    :config
+    (corfu-global-mode))
+
+  (use-package orderless
+    :straight t
+    :init
+    (setq completion-styles '(orderless)
+          completion-category-defaults nil
+          completion-category-overrides '((file (styles . (partial-completion))))))
+
+  (defun dw/get-project-root ()
+    (when (fboundp 'projectile-project-root)
+      (projectile-project-root)))
+
+  (use-package consult
+    :straight t
+    :demand t
+    :bind (("C-s" . consult-line)
+           ("C-M-l" . consult-imenu)
+           ("C-M-j" . persp-switch-to-buffer*)
+           :map minibuffer-local-map
+           ("C-r" . consult-history))
+    :custom
+    (consult-project-root-function #'dw/get-project-root)
+    (completion-in-region-function #'consult-completion-in-region)
+    ;; :config
+    ;; (consult-preview-mode)
+    )
+
+  (use-package marginalia
+    :after vertico
+    :straight t
+    :custom
+    (marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light nil))
+    :init
+    (marginalia-mode))
+
+  (use-package embark
+    :straight t
+    :bind (("C-S-a" . embark-act)
+           :map minibuffer-local-map
+           ("C-d" . embark-act))
+    :config
+
+    ;; Show Embark actions via which-key
+    (setq embark-action-indicator
+          (lambda (map)
+            (which-key--show-keymap "Embark" map nil nil 'no-paging)
+            #'which-key--hide-popup-ignore-command)
+          embark-become-indicator embark-action-indicator))
+
+#+end_src
 ** Dictionary and spelling
 #+BEGIN_SRC emacs-lisp
   (setq dictionary-server "localhost")
   (use-package flyspell
     :hook text-mode)
 #+END_SRC
+** Slack
+#+begin_src emacs-lisp
+  (use-package slack
+    :commands (slack-start)
+    :init
+    (setq slack-buffer-emojify t) ;; if you want to enable emoji, default nil
+    (setq slack-prefer-current-team t)
+    :config
+    (slack-register-team
+     :name "greyorange"
+     :default t
+     :token "***REMOVED***"
+     :cookie "***REMOVED***"
+     :subscribed-channels '(builds-gtp-core builds-gm-ui)
+     :full-and-display-names t)
+    (setq slack-enable-global-mode-string t)
+
+    (evil-define-key 'normal slack-info-mode-map
+      ",u" 'slack-room-update-messages)
+    (evil-define-key 'normal slack-mode-map
+      ",c" 'slack-buffer-kill
+      ",ra" 'slack-message-add-reaction
+      ",rr" 'slack-message-remove-reaction
+      ",rs" 'slack-message-show-reaction-users
+      ",pl" 'slack-room-pins-list
+      ",pa" 'slack-message-pins-add
+      ",pr" 'slack-message-pins-remove
+      ",mm" 'slack-message-write-another-buffer
+      ",me" 'slack-message-edit
+      ",md" 'slack-message-delete
+      ",u" 'slack-room-update-messages
+      ",2" 'slack-message-embed-mention
+      ",3" 'slack-message-embed-channel
+      "\C-n" 'slack-buffer-goto-next-message
+      "\C-p" 'slack-buffer-goto-prev-message)
+    (evil-define-key 'normal slack-edit-message-mode-map
+      ",k" 'slack-message-cancel-edit
+      ",s" 'slack-message-send-from-buffer
+      ",2" 'slack-message-embed-mention
+      ",3" 'slack-message-embed-channel))
+
+  (use-package alert
+    :commands (alert)
+    :init
+    (setq alert-default-style 'notifications))
+#+end_src
 ** Github copilot
 #+begin_src emacs-lisp
   (use-package copilot
@@ -409,7 +726,7 @@ Here's how we start:
            ("TAB" . 'copilot-accept-completion))
     )
 #+end_src
-** Wakatime
+** COMMENT Wakatime
 #+begin_src emacs-lisp
   (use-package wakatime-mode
     :diminish
@@ -447,6 +764,7 @@ Here's how we start:
     :init
     )
   (require 'erlang-start)
+  (use-package elixir-mode)
 
   (use-package eglot
     :hook (erlang-mode . eglot-ensure)
@@ -460,6 +778,8 @@ Here's how we start:
                 ;; Show all eldoc feedback.
                 (setq eldoc-documentation-strategy #'eldoc-documentation-compose)))
     )
+
+  
 #+END_SRC
 ** Docker and Kubernetes
 #+begin_src emacs-lisp
@@ -476,11 +796,13 @@ Here's how we start:
     :after kubernetes)
 #+end_src
 
-** mu4e
+** COMMENT mu4e
 #+begin_src emacs-lisp
   (use-package mu4e
+    :straight nil
     :config
     (setq
+     ;; mu4e-use-maildirs-extension nil
      mu4e-get-mail-command "systemctl --user start mbsync.service" ;; "mbsync fastmail-all"
      mu4e-view-prefer-html t
      ;; mu4e-update-interval 180
@@ -488,6 +810,14 @@ Here's how we start:
      mu4e-compose-signature-auto-include nil
      mu4e-compose-format-flowed t
      )
+
+    (setq user-full-name "Srijan Choudhary"
+          mu4e-sent-folder "/fastmail/Sent Items"
+          mu4e-drafts-folder "/fastmail/Drafts"
+          mu4e-trash-folder "/fastmail/Trash"
+          mu4e-refile-folder "/fastmail/Archive"
+          mu4e-attachment-dir  "~/Downloads"
+          )
 
     ;; enable inline images
     (setq mu4e-view-show-images t)
@@ -546,15 +876,6 @@ Here's how we start:
                  '( :name  "Inbox"
                     :query "maildir:/fastmail/INBOX"
                     :key   ?i))
-
-    (setq mu4e-attachment-dir  "~/Downloads")
-
-    (setq user-full-name "Srijan Choudhary"
-          mu4e-sent-folder "/fastmail/Sent Items"
-          mu4e-drafts-folder "/fastmail/Drafts"
-          mu4e-trash-folder "/fastmail/Trash"
-          mu4e-refile-folder "/fastmail/Archive"
-          )
 
     ;; set mail user agent
     (setq mail-user-agent 'mu4e-user-agent
@@ -657,6 +978,7 @@ Here's how we start:
 #+end_src
 ** Trying EXWM
 #+begin_src emacs-lisp
+  (use-package perspective-exwm)
   (use-package exwm
     :config
     )
@@ -667,6 +989,7 @@ Here's how we start:
     (setq display-time-default-load-average nil)
     (display-time-mode t)
     (require 'exwm)
+    (perspective-exwm-mode)
     (setq exwm-workspace-number 4)
     (add-hook 'exwm-update-class-hook
               (lambda ()
@@ -701,14 +1024,23 @@ Here's how we start:
             ;; Bind "s-<f2>" to "slock", a simple X display locker.
             ([s-f2] . (lambda ()
                         (interactive)
-                        (start-process "" nil "/usr/bin/slock")))))
+                        (start-process "" nil "/usr/bin/i3lock" "-nefc" "000000")))
+            ([s-j] . #'windmove-right)
+            ([s-k] . #'windmove-left)
+            ))
     (define-key exwm-mode-map [?\C-q] #'exwm-input-send-next-key)
     (exwm-enable)
+  
     (require 'exwm-systemtray)
     (exwm-systemtray-enable)
 
     (setq window-divider-default-right-width 1)
     (window-divider-mode)
+
+    ;; Hide the modeline on all X windows
+    (add-hook 'exwm-floating-setup-hook
+              (lambda ()
+                (exwm-layout-hide-mode-line)))
     )
 
 #+end_src
