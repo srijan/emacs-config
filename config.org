@@ -145,6 +145,13 @@ Here's how we start:
   ;; Fill column at 120
   (setq fill-column 120)
 
+  ;; Switching between windows. Use `ace-window`, configure using :init and :bind
+  (use-package ace-window
+    :ensure t
+    :init
+    (setq aw-scope 'frame)
+    :bind ("M-o" . ace-window))
+
 #+end_src
 ** Backups
 #+begin_src emacs-lisp
@@ -206,9 +213,6 @@ Here's how we start:
       ))
 
   (use-package evil-collection
-    ;; :straight '(evil-collection :host github
-    ;;                             :repo "meliache/evil-collection"
-    ;;                             :branch "mu4e-development")
     :diminish (evil-collection-unimpaired-mode)
     :after evil mu4e
     :ensure t
@@ -663,8 +667,8 @@ Here's how we start:
 ** Dictionary and spelling
 #+BEGIN_SRC emacs-lisp
   (setq dictionary-server "localhost")
-  (use-package flyspell
-    :hook text-mode)
+  ;; (use-package flyspell
+  ;;   :hook text-mode)
 #+END_SRC
 ** Slack
 #+begin_src emacs-lisp
@@ -737,7 +741,10 @@ Here's how we start:
     )
 #+end_src
 
-** Misc software dev packages
+** Misc for software dev
+#+BEGIN_SRC emacs-lisp
+#+END_SRC
+** Language Modes
 #+BEGIN_SRC emacs-lisp
   (use-package markdown-mode
     :mode ("README\\.md\\'" . gfm-mode)
@@ -796,7 +803,7 @@ Here's how we start:
     :after kubernetes)
 #+end_src
 
-** COMMENT mu4e
+** mu4e
 #+begin_src emacs-lisp
   (use-package mu4e
     :straight nil
@@ -807,15 +814,26 @@ Here's how we start:
      mu4e-view-prefer-html t
      ;; mu4e-update-interval 180
      mu4e-headers-auto-update nil
+     mu4e-search-include-related nil
      mu4e-compose-signature-auto-include nil
      mu4e-compose-format-flowed t
      )
+
+    (defun my-mu4e-refile-folder-fun (msg)
+      "Set the refile folder for MSG."
+      (let ((date (mu4e-message-field msg :date)))
+        (cond
+         (date
+          (format "/fastmail/Archive/%s" (format-time-string "%Y" date)))
+         (t
+          "/fastmail/Archive"))))
 
     (setq user-full-name "Srijan Choudhary"
           mu4e-sent-folder "/fastmail/Sent Items"
           mu4e-drafts-folder "/fastmail/Drafts"
           mu4e-trash-folder "/fastmail/Trash"
-          mu4e-refile-folder "/fastmail/Archive"
+          ;; mu4e-refile-folder "/fastmail/Archive"
+          mu4e-refile-folder 'my-mu4e-refile-folder-fun
           mu4e-attachment-dir  "~/Downloads"
           )
 
@@ -849,7 +867,8 @@ Here's how we start:
                 (visual-line-mode)
                 ;; (org-mu4e-compose-org-mode)
                 (use-hard-newlines -1)
-                (flyspell-mode)))
+                ;; (flyspell-mode)
+                ))
 
     ;;rename files when moving
     ;;NEEDED FOR MBSYNC
@@ -857,24 +876,28 @@ Here's how we start:
 
     ;; bookmarks
     (add-to-list 'mu4e-bookmarks
-                 '( :name  "Sent Items"
-                    :query "maildir:\"/fastmail/Sent Items\""
-                    :key   ?s))
-    (add-to-list 'mu4e-bookmarks
-                 '( :name  "JIRA"
-                    :query "maildir:/fastmail/JIRA"
-                    :key   ?j))
-    (add-to-list 'mu4e-bookmarks
-                 '( :name  "Code"
-                    :query "maildir:/fastmail/Code"
-                    :key   ?c))
-    (add-to-list 'mu4e-bookmarks
                  '( :name  "Inbox GO"
                     :query "maildir:\"/fastmail/Inbox GO\""
                     :key   ?g))
     (add-to-list 'mu4e-bookmarks
+                 '( :name  "Inbox Personal"
+                    :query "maildir:\"/fastmail/Inbox\""
+                    :key   ?p))
+    (add-to-list 'mu4e-bookmarks
+                 '( :name  "Sent Items"
+                    :query "maildir:\"/fastmail/Sent Items\""
+                    :key   ?s))
+    (add-to-list 'mu4e-bookmarks
+                 '( :name  "Waiting For Support"
+                    :query "\"maildir:/fastmail/@Waiting For Support\""
+                    :key   ?f))
+    (add-to-list 'mu4e-bookmarks
+                 '( :name  "Action Support"
+                    :query "\"maildir:/fastmail/@Action Support\""
+                    :key   ?a))
+    (add-to-list 'mu4e-bookmarks
                  '( :name  "Inbox"
-                    :query "maildir:/fastmail/INBOX"
+                    :query "\"maildir:/fastmail/Inbox\" or \"maildir:/fastmail/Inbox GO\""
                     :key   ?i))
 
     ;; set mail user agent
