@@ -748,7 +748,8 @@ Here's how we start:
 #+BEGIN_SRC emacs-lisp
   (use-package markdown-mode
     :mode ("README\\.md\\'" . gfm-mode)
-    :init (setq markdown-command "multimarkdown"))
+    :init (setq markdown-command '("pandoc" "--from=markdown" "--to=html5"))
+    )
   (use-package magit)
   (use-package json-mode)
 #+END_SRC
