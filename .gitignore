@@ -1,0 +1,11 @@
+config.el
+*~
+eln-cache
+projects
+smex-items
+transient
+eshell
+.lsp-session-v1
+emojis
+straight/*
+!straight/versions

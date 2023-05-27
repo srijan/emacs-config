@@ -35,7 +35,9 @@ Here's how we start:
 
   (straight-use-package 'use-package)
   (use-package straight
-    :custom (straight-use-package-by-default t))
+    :custom
+    (straight-use-package-by-default t)
+    (straight-host-usernames '((github    . "srijan"))))
 
   ;; Move customization variables to a separate file and load it
   (setq custom-file (locate-user-emacs-file "custom-vars.el"))
@@ -96,8 +98,8 @@ Here's how we start:
     (doom-themes-org-config))
 
   ;; (load-theme 'doom-one t)
-  (load-theme 'modus-vivendi t)
-  ;; (load-theme 'modus-operandi t)
+  ;; (load-theme 'modus-vivendi t)
+  (load-theme 'modus-operandi t)
   ;; (use-package dracula-theme
   ;;   :config
   ;;   (load-theme 'dracula t))
@@ -122,7 +124,9 @@ Here's how we start:
 
   ;; Fonts
   ;; (set-face-attribute 'default nil :font "RobotoMono Nerd Font" :height 140)
-  (set-face-attribute 'default nil :font "FiraCode Nerd Font Mono" :height 120)
+  ;; (set-face-attribute 'default nil :font "FiraCode Nerd Font Mono" :height 140)
+  ;; (set-face-attribute 'default nil :font "Hack Nerd Font Mono" :height 140)
+  (set-face-attribute 'default nil :font "Iosevka Comfy Wide Fixed" :height 140)
 
   (use-package diminish
     :config (require 'diminish))
@@ -213,6 +217,7 @@ Here's how we start:
       ))
 
   (use-package evil-collection
+    :straight (:type git :host github :repo "emacs-evil/evil-collection" :fork t)
     :diminish (evil-collection-unimpaired-mode)
     :after evil mu4e
     :ensure t
@@ -248,7 +253,76 @@ Here's how we start:
     :config
     (doom-modeline-mode 1))
 #+end_src
-** Org mode
+** Org GTD
+#+BEGIN_SRC emacs-lisp
+  (use-package org
+    :straight (:type built-in)
+    :ensure org-plus-contrib
+    :hook ((org-capture-mode . delete-other-windows)
+           (org-capture-mode . evil-insert-state))
+    :custom
+    (org-ellipsis " ▼")
+
+    (org-agenda-start-with-log-mode t)
+    (org-agenda-window-setup 'only-window)
+    (org-startup-folded 'content)
+    (org-startup-indented t)
+    (org-startup-with-inline-images t)
+    (org-clock-persist 'history)
+    (org-log-into-drawer t)
+    (org-log-done 'time)
+    (org-tag-persistent-alist '( ;; (:startgroup . nil)
+                                 ("@computer") ("@mail") ("@errands")
+                                 ;; (:endgroup . nil) (:startgroup . nil)
+                                 ("@home") ("@work") ("@anywhere")
+                                 ;; (:endgroup . nil)
+                                 ("@fun") ("@agenda")
+                                 ))
+
+    :config
+    ;; So that we can jump back
+    (advice-add 'org-open-at-point :before #'evil-set-jump)
+
+    ;; Clock stuff
+    (org-clock-persistence-insinuate)
+    (defun current-clock-time-to-file ()
+      (interactive)
+      (with-temp-file "~/.local/state/task"
+        (if (org-clocking-p)
+            (insert (org-clock-get-clock-string))
+          (insert "No Task"))))
+    (run-with-timer 1 60 'current-clock-time-to-file)
+    (add-hook 'org-clock-in-hook 'current-clock-time-to-file)
+    (add-hook 'org-clock-out-hook 'current-clock-time-to-file)
+    )
+  (use-package org-gtd
+    :straight (:type git :host github :repo "Trevoke/org-gtd.el")
+    :after org
+    ;; :ensure t
+    :demand t
+    :init
+    (setq org-gtd-update-ack "3.0.0")
+    :custom
+    (org-gtd-directory "~/ndxrd-uxxs3/org/")
+    (org-edna-use-inheritance t)
+    (org-gtd-organize-hooks '(org-set-tags-command))
+    (org-gtd-refile-to-any-target nil)
+    :config
+    (org-edna-mode 1)
+    (org-gtd-mode 1)
+    :bind
+    (("C-c d c" . org-gtd-capture)
+     ("C-c d e" . org-gtd-engage)
+     ("C-c d p" . org-gtd-process-inbox)
+     ("C-c d n" . org-gtd-show-all-next)
+     ("C-c d x" . org-gtd-clarify-item)
+     ("C-c d s" . org-save-all-org-buffers)
+     :map org-gtd-clarify-map
+     ("C-c c" . org-gtd-organize)
+     ))
+
+#+END_SRC
+** COMMENT Org mode manual setup
 #+BEGIN_SRC emacs-lisp
   (use-package org
     :straight (:type built-in)
@@ -257,8 +331,7 @@ Here's how we start:
            (org-capture-mode . evil-insert-state))
     :custom
     (org-directory "~/ndxrd-uxxs3/org")
-    (org-agenda-files (list "inbox.org" "gtd.org" "tickler.org" "MobileInbox.org"))
-    ;; (org-default-notes-file (concat org-directory "/work.org"))
+    (org-agenda-files (list "inbox.org" "work-projects.org" "tickler.org" "MobileInbox.org"))
     (org-capture-templates '(("i" "Inbox" entry (file "inbox.org")
                               "* TODO %i%?\n/Entered on/ %U")
                              ("@" "Inbox [mu4e]" entry (file "inbox.org")
@@ -374,6 +447,20 @@ Here's how we start:
                 (org-paste-subtree level tree-text))))))))
 
 #+END_SRC
+** Ediff
+#+BEGIN_SRC emacs-lisp
+(use-package ediff
+  :config
+  (setq ediff-split-window-function 'split-window-horizontally)
+  (setq ediff-window-setup-function 'ediff-setup-windows-plain)
+  (defun my/command-line-diff (switch)
+    (setq initial-buffer-choice nil)
+    (let ((file1 (pop command-line-args-left))
+      (file2 (pop command-line-args-left)))
+      (ediff file1 file2)))
+  ;; show the ediff command buffer in the same frame
+  (add-to-list 'command-switch-alist '("-diff" . my/command-line-diff)))
+#+END_SRC
 ** File tree
 #+begin_src emacs-lisp
   (use-package treemacs
@@ -453,8 +540,25 @@ Here's how we start:
     (org-present-mode . my/org-present-start)
     (org-present-mode-quit . my/org-present-end)
     )
-      #+end_src
-** Workspaces
+#+end_src
+** COMMENT Workspaces - tabspaces
+#+BEGIN_SRC emacs-lisp
+  (use-package tabspaces
+    :straight (:type git :host github :repo "mclear-tools/tabspaces")
+    :hook (after-init . tabspaces-mode)
+    commands (tabspaces-switch-or-create-workspace
+              tabspaces-open-or-create-project-and-workspace)
+    :custom
+    (tabspaces-use-filtered-buffers-as-default t)
+    (tabspaces-default-tab "Default")
+    (tabspaces-remove-to-default t)
+    (tabspaces-include-buffers '("*scratch*"))
+    ;; sessions
+    (tabspaces-session t)
+    (tabspaces-session-auto-restore t)
+    )
+#+END_SRC
+** COMMENT Workspaces - perspective
 #+begin_src emacs-lisp
   (use-package perspective
     :demand t
@@ -616,11 +720,10 @@ Here's how we start:
     (corfu-global-mode))
 
   (use-package orderless
-    :straight t
-    :init
-    (setq completion-styles '(orderless)
-          completion-category-defaults nil
-          completion-category-overrides '((file (styles . (partial-completion))))))
+    :custom
+    (completion-styles '(orderless basic))
+    (completion-category-overrides '((file (styles basic partial-completion))))
+    )
 
   (defun dw/get-project-root ()
     (when (fboundp 'projectile-project-root)
@@ -664,6 +767,37 @@ Here's how we start:
           embark-become-indicator embark-action-indicator))
 
 #+end_src
+** Project Root
+From: https://andreyorst.gitlab.io/posts/2022-07-16-project-el-enhancements/
+#+BEGIN_SRC emacs-lisp
+  (use-package project
+    :config
+    (defcustom project-root-markers
+      '("inbox.org")
+      "Files or directories that indicate the root of a project."
+      :type '(repeat string)
+      :group 'project)
+    (defun project-root-p (path)
+      "Check if the current PATH has any of the project root markers."
+      (catch 'found
+        (dolist (marker project-root-markers)
+          (when (file-exists-p (concat path marker))
+            (throw 'found marker)))))
+    ;; (defun project-find-root (path)
+    ;;   "Search up the PATH for `project-root-markers'."
+    ;;   (when-let ((root (locate-dominating-file path #'project-root-p)))
+    ;;     (cons 'transient (expand-file-name root))))
+    (defun project-find-root (path)
+      "Search up the PATH for `project-root-markers'."
+      (let ((path (expand-file-name path)))
+        (catch 'found
+          (while (not (equal "/" path))
+            (if (not (project-root-p path))
+                (setq path (file-name-directory (directory-file-name path)))
+              (throw 'found (cons 'transient path)))))))
+    (add-to-list 'project-find-functions #'project-find-root)
+    )
+#+END_SRC
 ** Dictionary and spelling
 #+BEGIN_SRC emacs-lisp
   (setq dictionary-server "localhost")
@@ -808,6 +942,9 @@ Here's how we start:
 #+begin_src emacs-lisp
   (use-package mu4e
     :straight nil
+    :hook (evil-collection-setup . (lambda (&rest a)
+                                     (evil-define-key 'normal mu4e-headers-mode-map "z%" 'mu4e-headers-mark-thread)
+                                     ))
     :config
     (setq
      ;; mu4e-use-maildirs-extension nil
@@ -846,7 +983,7 @@ Here's how we start:
       (imagemagick-register-types))
 
     ;; every new email composition gets its own frame!
-    (setq mu4e-compose-in-new-frame t)
+    ;; (setq mu4e-compose-in-new-frame t)
 
     ;; don't save message to Sent Messages, IMAP takes care of this
     (setq mu4e-sent-messages-behavior 'sent)
@@ -954,6 +1091,7 @@ Here's how we start:
     :bind (
            :map mu4e-headers-mode-map
            ("C-c i" . org-capture-mail)
+           ;; ("z m" . mu4e-view-mark-thread)
            :map mu4e-view-mode-map
            ("C-c i" . org-capture-mail))
     )
@@ -1000,7 +1138,7 @@ Here's how we start:
     :custom
     (org-journal-dir "~/ndxrd-uxxs3/org/journal"))
 #+end_src
-** Trying EXWM
+** COMMENT Trying EXWM
 #+begin_src emacs-lisp
   (use-package perspective-exwm)
   (use-package exwm
