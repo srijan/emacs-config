@@ -78,14 +78,16 @@ Here's how we start:
   ;; (global-display-line-numbers-mode 1)
 
   (use-package doom-themes
-    :disabled t
+    ;; :disabled t
     :ensure t
     :config
     ;; Global settings (defaults)
     (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
           doom-themes-enable-italic t) ; if nil, italics is universally disabled
 
-    (load-theme 'doom-Iosvkem t)
+    ;; (load-theme 'doom-Iosvkem t)
+    ;; (load-theme 'doom-snazzy t)
+    ;; (load-theme 'doom-one t)
 
     ;; Enable flashing mode-line on errors
     (doom-themes-visual-bell-config)
@@ -97,9 +99,15 @@ Here's how we start:
     ;; Corrects (and improves) org-mode's native fontification.
     (doom-themes-org-config))
 
-  ;; (load-theme 'doom-one t)
-  ;; (load-theme 'modus-vivendi t)
-  (load-theme 'modus-operandi t)
+  ;; (use-package solaire-mode
+  ;;   :config
+  ;;   (solaire-global-mode +1))
+
+  ;; (use-package catppuccin-theme
+  ;;   :straight (:type git :host github :repo "catppuccin/emacs"))
+
+  (load-theme 'modus-vivendi t)
+  ;; (load-theme 'modus-operandi t)
   ;; (use-package dracula-theme
   ;;   :config
   ;;   (load-theme 'dracula t))
@@ -149,6 +157,10 @@ Here's how we start:
   ;; Fill column at 120
   (setq fill-column 120)
 
+#+end_src
+** Windows and Tabs
+#+BEGIN_SRC emacs-lisp
+
   ;; Switching between windows. Use `ace-window`, configure using :init and :bind
   (use-package ace-window
     :ensure t
@@ -156,7 +168,29 @@ Here's how we start:
     (setq aw-scope 'frame)
     :bind ("M-o" . ace-window))
 
-#+end_src
+  (use-package intuitive-tab-line
+    :straight (:type git :host github :repo "thread314/intuitive-tab-line-mode")
+    ;; :load-path "git/intuitive-tab-line-mode"
+    :custom
+    (tab-line-tabs-function 'intuitive-tab-line-buffers-list)
+    (tab-line-switch-cycling t)
+    :config
+    (global-tab-line-mode 1)
+    (recentf-mode 1)
+    (setq
+     tab-line-new-button-show nil  ;; do not show add-new button
+     tab-line-close-button-show nil  ;; do not show close button
+     tab-line-separator " "  ;; delimitation between tabs
+     )
+    :bind
+    ("C-<prior>" . tab-line-switch-to-prev-tab)
+    ("C-<iso-lefttab>" . tab-line-switch-to-prev-tab)
+    ("C-<next>" . tab-line-switch-to-next-tab)
+    ("C-<tab>" . tab-line-switch-to-next-tab)
+    ("C-S-<prior>" . intuitive-tab-line-shift-tab-left)
+    ("C-S-<next>" . intuitive-tab-line-shift-tab-right)
+    ("C-S-t" . recentf-open-most-recent-file))
+#+END_SRC
 ** Backups
 #+begin_src emacs-lisp
 ;; Backup
@@ -249,8 +283,10 @@ Here's how we start:
 ** Modeline
 #+begin_src emacs-lisp
   (use-package all-the-icons)
+  (use-package nerd-icons)
   (use-package doom-modeline
-    :config
+    :ensure t
+    :init
     (doom-modeline-mode 1))
 #+end_src
 ** Org GTD
@@ -271,13 +307,13 @@ Here's how we start:
     (org-clock-persist 'history)
     (org-log-into-drawer t)
     (org-log-done 'time)
-    (org-tag-persistent-alist '( ;; (:startgroup . nil)
-                                 ("@computer") ("@mail") ("@errands")
-                                 ;; (:endgroup . nil) (:startgroup . nil)
-                                 ("@home") ("@work") ("@anywhere")
-                                 ;; (:endgroup . nil)
-                                 ("@fun") ("@agenda")
-                                 ))
+    (org-tag-persistent-alist '((:startgroup . nil)
+                                ("@computer") ("@mail") ("@errands")
+                                (:endgroup . nil) (:startgroup . nil)
+                                ("@home") ("@office") ("@anywhere")
+                                (:endgroup . nil)
+                                ("@fun") ("@agenda")
+                                ))
 
     :config
     ;; So that we can jump back
@@ -294,6 +330,20 @@ Here's how we start:
     (run-with-timer 1 60 'current-clock-time-to-file)
     (add-hook 'org-clock-in-hook 'current-clock-time-to-file)
     (add-hook 'org-clock-out-hook 'current-clock-time-to-file)
+
+    ;; Custom functions
+    (defun org-capture-inbox ()
+      (interactive)
+      (call-interactively 'org-store-link)
+      (org-capture nil "i"))
+    (defun org-capture-mail ()
+      (interactive)
+      (call-interactively 'org-store-link)
+      (org-capture nil "@"))
+    :bind
+    ("C-c i" . org-capture-inbox)
+    ("C-c a" . org-agenda)
+    ("C-c l" . org-store-link)
     )
   (use-package org-gtd
     :straight (:type git :host github :repo "Trevoke/org-gtd.el")
@@ -312,10 +362,12 @@ Here's how we start:
     (org-gtd-mode 1)
     :bind
     (("C-c d c" . org-gtd-capture)
+     ("C-c c"   . org-gtd-capture)
      ("C-c d e" . org-gtd-engage)
      ("C-c d p" . org-gtd-process-inbox)
      ("C-c d n" . org-gtd-show-all-next)
      ("C-c d x" . org-gtd-clarify-item)
+     ("C-c d w" . org-gtd-delegate-item-at-point)
      ("C-c d s" . org-save-all-org-buffers)
      :map org-gtd-clarify-map
      ("C-c c" . org-gtd-organize)
@@ -681,7 +733,7 @@ Here's how we start:
 
   (defun dw/minibuffer-backward-kill (arg)
     "When minibuffer is completing a file name delete up to parent
-      folder, otherwise delete a word"
+        folder, otherwise delete a word"
     (interactive "p")
     (if minibuffer-completing-file-name
         ;; Borrowed from https://github.com/raxod502/selectrum/issues/498#issuecomment-803283608
@@ -721,6 +773,9 @@ Here's how we start:
 
   (use-package orderless
     :custom
+    ;; (completion-styles '(orderless))
+    ;; (completion-category-defaults nil)
+    ;; (completion-category-overrides '((file (styles . (partial-completion)))))
     (completion-styles '(orderless basic))
     (completion-category-overrides '((file (styles basic partial-completion))))
     )
@@ -857,8 +912,9 @@ From: https://andreyorst.gitlab.io/posts/2022-07-16-project-el-enhancements/
     :straight (:host github :repo "zerolfx/copilot.el" :files ("dist" "*.el"))
     :ensure t
     :hook (prog-mode . copilot-mode)
-    :bind (("C-TAB" . 'copilot-accept-completion-by-word)
-           ("C-<tab>" . 'copilot-accept-completion-by-word)
+    :bind (
+           ;; ("C-TAB" . 'copilot-accept-completion-by-word)
+           ;; ("C-<tab>" . 'copilot-accept-completion-by-word)
            :map copilot-completion-map
            ("<tab>" . 'copilot-accept-completion)
            ("TAB" . 'copilot-accept-completion))
