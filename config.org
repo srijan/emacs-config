@@ -47,7 +47,8 @@ Here's how we start:
 #+END_SRC
 ** System information
 #+BEGIN_SRC emacs-lisp
-  (defvar my-laptop-p (equal (system-name) "GGN001944"))
+  (defvar my-linux-p (equal (system-name) "GGN001944"))
+  (defvar my-windows-p (equal (system-name) "SHADOW"))
   ;; (defvar my-server-p (and (equal (system-name) "localhost") (equal user-login-name "sacha")))
   (defvar my-phone-p (not (null (getenv "ANDROID_ROOT")))
     "If non-nil, GNU Emacs is running on Termux.")
@@ -134,7 +135,10 @@ Here's how we start:
   ;; (set-face-attribute 'default nil :font "RobotoMono Nerd Font" :height 140)
   ;; (set-face-attribute 'default nil :font "FiraCode Nerd Font Mono" :height 140)
   ;; (set-face-attribute 'default nil :font "Hack Nerd Font Mono" :height 140)
-  (set-face-attribute 'default nil :font "Iosevka Comfy Wide Fixed" :height 140)
+  (when my-linux-p
+    (set-face-attribute 'default nil :font "Iosevka Comfy Wide Fixed" :height 140))
+  (when my-windows-p
+    (set-face-attribute 'default nil :font "FiraCode NFM" :height 130))
 
   (use-package diminish
     :config (require 'diminish))
@@ -167,6 +171,8 @@ Here's how we start:
     :init
     (setq aw-scope 'frame)
     :bind ("M-o" . ace-window))
+  ;; Open the config file
+  (global-set-key (kbd "C-x ,") (lambda() (interactive) (find-file (locate-user-emacs-file "config.org"))))
 
   (use-package intuitive-tab-line
     :straight (:type git :host github :repo "thread314/intuitive-tab-line-mode")
@@ -278,7 +284,11 @@ Here's how we start:
 
   (add-hook 'term-mode-hook 'bb/setup-term-mode)
 
-  (use-package vterm)
+  (when my-linux-p
+    (use-package vterm))
+
+  (when my-windows-p
+    (use-package powershell))
 #+end_src
 ** Modeline
 #+begin_src emacs-lisp
@@ -320,16 +330,17 @@ Here's how we start:
     (advice-add 'org-open-at-point :before #'evil-set-jump)
 
     ;; Clock stuff
-    (org-clock-persistence-insinuate)
-    (defun current-clock-time-to-file ()
-      (interactive)
-      (with-temp-file "~/.local/state/task"
-        (if (org-clocking-p)
-            (insert (org-clock-get-clock-string))
-          (insert "No Task"))))
-    (run-with-timer 1 60 'current-clock-time-to-file)
-    (add-hook 'org-clock-in-hook 'current-clock-time-to-file)
-    (add-hook 'org-clock-out-hook 'current-clock-time-to-file)
+    (when my-linux-p
+      (org-clock-persistence-insinuate)
+      (defun current-clock-time-to-file ()
+        (interactive)
+        (with-temp-file "~/.local/state/task"
+          (if (org-clocking-p)
+              (insert (org-clock-get-clock-string))
+            (insert "No Task"))))
+      (run-with-timer 1 60 'current-clock-time-to-file)
+      (add-hook 'org-clock-in-hook 'current-clock-time-to-file)
+      (add-hook 'org-clock-out-hook 'current-clock-time-to-file))
 
     ;; Custom functions
     (defun org-capture-inbox ()
@@ -357,6 +368,7 @@ Here's how we start:
     (org-edna-use-inheritance t)
     (org-gtd-organize-hooks '(org-set-tags-command))
     (org-gtd-refile-to-any-target nil)
+    (org-gtd-engage-prefix-width 24)
     :config
     (org-edna-mode 1)
     (org-gtd-mode 1)
@@ -433,16 +445,17 @@ Here's how we start:
 
     (advice-add 'org-open-at-point :before #'evil-set-jump)
 
-    (org-clock-persistence-insinuate)
-    (defun current-clock-time-to-file ()
-      (interactive)
-      (with-temp-file "~/.local/state/task"
-        (if (org-clocking-p)
-            (insert (org-clock-get-clock-string))
-          (insert "No Task"))))
-    (run-with-timer 1 60 'current-clock-time-to-file)
-    (add-hook 'org-clock-in-hook 'current-clock-time-to-file)
-    (add-hook 'org-clock-out-hook 'current-clock-time-to-file)
+    (when my-linux-p
+      (org-clock-persistence-insinuate)
+      (defun current-clock-time-to-file ()
+        (interactive)
+        (with-temp-file "~/.local/state/task"
+          (if (org-clocking-p)
+              (insert (org-clock-get-clock-string))
+            (insert "No Task"))))
+      (run-with-timer 1 60 'current-clock-time-to-file)
+      (add-hook 'org-clock-in-hook 'current-clock-time-to-file)
+      (add-hook 'org-clock-out-hook 'current-clock-time-to-file))
 
     :bind
     ("C-c i" . org-capture-inbox)
@@ -626,7 +639,7 @@ Here's how we start:
       (persp-mode)))
   #+end_src
 ** Learning & Discovering
-#+begin_src emacs-list
+#+begin_src emacs-lisp
   (use-package command-log-mode
    :config
    (global-command-log-mode))
@@ -824,40 +837,43 @@ Here's how we start:
 #+end_src
 ** Project Root
 From: https://andreyorst.gitlab.io/posts/2022-07-16-project-el-enhancements/
+WARN: This makes emacs on Windows extremely slow
 #+BEGIN_SRC emacs-lisp
-  (use-package project
-    :config
-    (defcustom project-root-markers
-      '("inbox.org")
-      "Files or directories that indicate the root of a project."
-      :type '(repeat string)
-      :group 'project)
-    (defun project-root-p (path)
-      "Check if the current PATH has any of the project root markers."
-      (catch 'found
-        (dolist (marker project-root-markers)
-          (when (file-exists-p (concat path marker))
-            (throw 'found marker)))))
-    ;; (defun project-find-root (path)
-    ;;   "Search up the PATH for `project-root-markers'."
-    ;;   (when-let ((root (locate-dominating-file path #'project-root-p)))
-    ;;     (cons 'transient (expand-file-name root))))
-    (defun project-find-root (path)
-      "Search up the PATH for `project-root-markers'."
-      (let ((path (expand-file-name path)))
+  (when my-linux-p
+    (use-package project
+      :config
+      (defcustom project-root-markers
+        '("inbox.org")
+        "Files or directories that indicate the root of a project."
+        :type '(repeat string)
+        :group 'project)
+      (defun project-root-p (path)
+        "Check if the current PATH has any of the project root markers."
         (catch 'found
-          (while (not (equal "/" path))
-            (if (not (project-root-p path))
-                (setq path (file-name-directory (directory-file-name path)))
-              (throw 'found (cons 'transient path)))))))
-    (add-to-list 'project-find-functions #'project-find-root)
-    )
+          (dolist (marker project-root-markers)
+            (when (file-exists-p (concat path marker))
+              (throw 'found marker)))))
+      ;; (defun project-find-root (path)
+      ;;   "Search up the PATH for `project-root-markers'."
+      ;;   (when-let ((root (locate-dominating-file path #'project-root-p)))
+      ;;     (cons 'transient (expand-file-name root))))
+      (defun project-find-root (path)
+        "Search up the PATH for `project-root-markers'."
+        (let ((path (expand-file-name path)))
+          (catch 'found
+            (while (not (equal "/" path))
+              (if (not (project-root-p path))
+                  (setq path (file-name-directory (directory-file-name path)))
+                (throw 'found (cons 'transient path)))))))
+      (add-to-list 'project-find-functions #'project-find-root)
+      ))
 #+END_SRC
 ** Dictionary and spelling
 #+BEGIN_SRC emacs-lisp
-  (setq dictionary-server "localhost")
-  ;; (use-package flyspell
-  ;;   :hook text-mode)
+  (when my-linux-p
+    ((setq dictionary-server "localhost")
+     (use-package flyspell
+       :hook text-mode)))
 #+END_SRC
 ** Slack
 #+begin_src emacs-lisp
@@ -942,6 +958,8 @@ From: https://andreyorst.gitlab.io/posts/2022-07-16-project-el-enhancements/
     )
   (use-package magit)
   (use-package json-mode)
+  (when my-windows-p
+    (use-package ahk-mode))
 #+END_SRC
 ** Erlang & LSP
 #+BEGIN_SRC emacs-lisp
@@ -952,9 +970,14 @@ From: https://andreyorst.gitlab.io/posts/2022-07-16-project-el-enhancements/
     )
 
   ;; Install the official Erlang mode
-  (add-to-list
-   'load-path (car (file-expand-wildcards
-                    "/usr/lib/erlang/lib/tools-*/emacs")))
+  (when my-linux-p
+    (add-to-list
+     'load-path (car (file-expand-wildcards
+                      "/usr/lib/erlang/lib/tools-*/emacs"))))
+  (when my-windows-p
+    (add-to-list
+     'load-path (car (file-expand-wildcards
+                      "/Program Files/Erlang OTP/lib/tools-*/emacs"))))
   (use-package erlang
     :straight nil
     :hook ((erlang-mode . linum-mode)
@@ -993,199 +1016,212 @@ From: https://andreyorst.gitlab.io/posts/2022-07-16-project-el-enhancements/
     :ensure t
     :after kubernetes)
 #+end_src
+** Mastodon
+#+begin_src emacs-lisp
+  (use-package emojify)
+  ;; (:hook (after-init . global-emojify-mode))
+  (use-package mastodon
+    :straight (:package mastodon :host nil :type git :repo "https://codeberg.org/martianh/mastodon.el.git" :branch "develop")
+    :ensure t
+    :config
+    (setq mastodon-instance-url "https://fedi.srijan.dev"
+          mastodon-active-user "srijan")
+    )
+ #+end_src
 
 ** mu4e
 #+begin_src emacs-lisp
-  (use-package mu4e
-    :straight nil
-    :hook (evil-collection-setup . (lambda (&rest a)
-                                     (evil-define-key 'normal mu4e-headers-mode-map "z%" 'mu4e-headers-mark-thread)
-                                     ))
-    :config
-    (setq
-     ;; mu4e-use-maildirs-extension nil
-     mu4e-get-mail-command "systemctl --user start mbsync.service" ;; "mbsync fastmail-all"
-     mu4e-view-prefer-html t
-     ;; mu4e-update-interval 180
-     mu4e-headers-auto-update nil
-     mu4e-search-include-related nil
-     mu4e-compose-signature-auto-include nil
-     mu4e-compose-format-flowed t
-     )
+  (when my-linux-p
+    (use-package mu4e
+      :straight nil
+      :hook (evil-collection-setup . (lambda (&rest a)
+                                       (evil-define-key 'normal mu4e-headers-mode-map "z%" 'mu4e-headers-mark-thread)
+                                       ))
+      :config
+      (setq
+       ;; mu4e-use-maildirs-extension nil
+       mu4e-get-mail-command "systemctl --user start mbsync.service" ;; "mbsync fastmail-all"
+       mu4e-view-prefer-html t
+       ;; mu4e-update-interval 180
+       mu4e-headers-auto-update nil
+       mu4e-search-include-related nil
+       mu4e-compose-signature-auto-include nil
+       mu4e-compose-format-flowed t
+       )
 
-    (defun my-mu4e-refile-folder-fun (msg)
-      "Set the refile folder for MSG."
-      (let ((date (mu4e-message-field msg :date)))
-        (cond
-         (date
-          (format "/fastmail/Archive/%s" (format-time-string "%Y" date)))
-         (t
-          "/fastmail/Archive"))))
+      (defun my-mu4e-refile-folder-fun (msg)
+        "Set the refile folder for MSG."
+        (let ((date (mu4e-message-field msg :date)))
+          (cond
+           (date
+            (format "/fastmail/Archive/%s" (format-time-string "%Y" date)))
+           (t
+            "/fastmail/Archive"))))
 
-    (setq user-full-name "Srijan Choudhary"
-          mu4e-sent-folder "/fastmail/Sent Items"
-          mu4e-drafts-folder "/fastmail/Drafts"
-          mu4e-trash-folder "/fastmail/Trash"
-          ;; mu4e-refile-folder "/fastmail/Archive"
-          mu4e-refile-folder 'my-mu4e-refile-folder-fun
-          mu4e-attachment-dir  "~/Downloads"
-          )
+      (setq user-full-name "Srijan Choudhary"
+            mu4e-sent-folder "/fastmail/Sent Items"
+            mu4e-drafts-folder "/fastmail/Drafts"
+            mu4e-trash-folder "/fastmail/Trash"
+            ;; mu4e-refile-folder "/fastmail/Archive"
+            mu4e-refile-folder 'my-mu4e-refile-folder-fun
+            mu4e-attachment-dir  "~/Downloads"
+            )
 
-    ;; enable inline images
-    (setq mu4e-view-show-images t)
+      ;; enable inline images
+      (setq mu4e-view-show-images t)
 
-    ;; use imagemagick, if available
-    (when (fboundp 'imagemagick-register-types)
-      (imagemagick-register-types))
+      ;; use imagemagick, if available
+      (when (fboundp 'imagemagick-register-types)
+        (imagemagick-register-types))
 
-    ;; every new email composition gets its own frame!
-    ;; (setq mu4e-compose-in-new-frame t)
+      ;; every new email composition gets its own frame!
+      ;; (setq mu4e-compose-in-new-frame t)
 
-    ;; don't save message to Sent Messages, IMAP takes care of this
-    (setq mu4e-sent-messages-behavior 'sent)
+      ;; don't save message to Sent Messages, IMAP takes care of this
+      (setq mu4e-sent-messages-behavior 'sent)
 
-    (add-hook 'mu4e-view-mode-hook #'visual-line-mode)
+      (add-hook 'mu4e-view-mode-hook #'visual-line-mode)
 
-    ;; <tab> to navigate to links, <RET> to open them in browser
-    (add-hook 'mu4e-view-mode-hook
-              (lambda()
-                ;; try to emulate some of the eww key-bindings
-                (local-set-key (kbd "<RET>") 'mu4e~view-browse-url-from-binding)
-                (local-set-key (kbd "<tab>") 'shr-next-link)
-                (local-set-key (kbd "<backtab>") 'shr-previous-link)))
+      ;; <tab> to navigate to links, <RET> to open them in browser
+      (add-hook 'mu4e-view-mode-hook
+                (lambda()
+                  ;; try to emulate some of the eww key-bindings
+                  (local-set-key (kbd "<RET>") 'mu4e~view-browse-url-from-binding)
+                  (local-set-key (kbd "<tab>") 'shr-next-link)
+                  (local-set-key (kbd "<backtab>") 'shr-previous-link)))
 
-    ;; spell check
-    (add-hook 'mu4e-compose-mode-hook
-              (defun my-do-compose-stuff ()
-                "My settings for message composition."
-                (visual-line-mode)
-                ;; (org-mu4e-compose-org-mode)
-                (use-hard-newlines -1)
-                ;; (flyspell-mode)
-                ))
+      ;; spell check
+      (add-hook 'mu4e-compose-mode-hook
+                (defun my-do-compose-stuff ()
+                  "My settings for message composition."
+                  (visual-line-mode)
+                  ;; (org-mu4e-compose-org-mode)
+                  (use-hard-newlines -1)
+                  ;; (flyspell-mode)
+                  ))
 
-    ;;rename files when moving
-    ;;NEEDED FOR MBSYNC
-    (setq mu4e-change-filenames-when-moving t)
+      ;;rename files when moving
+      ;;NEEDED FOR MBSYNC
+      (setq mu4e-change-filenames-when-moving t)
 
-    ;; bookmarks
-    (add-to-list 'mu4e-bookmarks
-                 '( :name  "Inbox GO"
-                    :query "maildir:\"/fastmail/Inbox GO\""
-                    :key   ?g))
-    (add-to-list 'mu4e-bookmarks
-                 '( :name  "Inbox Personal"
-                    :query "maildir:\"/fastmail/Inbox\""
-                    :key   ?p))
-    (add-to-list 'mu4e-bookmarks
-                 '( :name  "Sent Items"
-                    :query "maildir:\"/fastmail/Sent Items\""
-                    :key   ?s))
-    (add-to-list 'mu4e-bookmarks
-                 '( :name  "Waiting For Support"
-                    :query "\"maildir:/fastmail/@Waiting For Support\""
-                    :key   ?f))
-    (add-to-list 'mu4e-bookmarks
-                 '( :name  "Action Support"
-                    :query "\"maildir:/fastmail/@Action Support\""
-                    :key   ?a))
-    (add-to-list 'mu4e-bookmarks
-                 '( :name  "Inbox"
-                    :query "\"maildir:/fastmail/Inbox\" or \"maildir:/fastmail/Inbox GO\""
-                    :key   ?i))
+      ;; bookmarks
+      (add-to-list 'mu4e-bookmarks
+                   '( :name  "Inbox GO"
+                      :query "maildir:\"/fastmail/Inbox GO\""
+                      :key   ?g))
+      (add-to-list 'mu4e-bookmarks
+                   '( :name  "Inbox Personal"
+                      :query "maildir:\"/fastmail/Inbox\""
+                      :key   ?p))
+      (add-to-list 'mu4e-bookmarks
+                   '( :name  "Sent Items"
+                      :query "maildir:\"/fastmail/Sent Items\""
+                      :key   ?s))
+      (add-to-list 'mu4e-bookmarks
+                   '( :name  "Waiting For Support"
+                      :query "\"maildir:/fastmail/@Waiting For Support\""
+                      :key   ?f))
+      (add-to-list 'mu4e-bookmarks
+                   '( :name  "Action Support"
+                      :query "\"maildir:/fastmail/@Action Support\""
+                      :key   ?a))
+      (add-to-list 'mu4e-bookmarks
+                   '( :name  "Inbox"
+                      :query "\"maildir:/fastmail/Inbox\" or \"maildir:/fastmail/Inbox GO\""
+                      :key   ?i))
 
-    ;; set mail user agent
-    (setq mail-user-agent 'mu4e-user-agent
-          message-mail-user-agent 'mu4e-user-agent)
+      ;; set mail user agent
+      (setq mail-user-agent 'mu4e-user-agent
+            message-mail-user-agent 'mu4e-user-agent)
 
-    ;; Setup mu4e contexts. This is to enable adding multiple email contexts if needed in the future.
-    ;; I will initially only enable my fastmail context but adding a new one shouldn't be harder than copying
-    ;; the existing context and modifying the settings.
-    (setq mu4e-context-policy 'pick-first)
-    (setq mu4e-compose-context-policy 'ask)
-    (setq mu4e-contexts
-          (list
-           (make-mu4e-context
-            :name "fastmail"
-            :enter-func (lambda () (mu4e-message "Entering context fastmail"))
-            :leave-func (lambda () (mu4e-message "Leaving context fastmail"))
-            :match-func (lambda (msg)
-                          (when msg
-                            (mu4e-message-contact-field-matches
-                             msg '(:from :to :cc :bcc) "srijan@fastmail.com")))
-            :vars '((user-mail-address . "srijan@fastmail.com")
-                    ;; (mu4e-compose-signature . (concat "Srijan Choudhary\n" "https://www.srijn.net\n"))
-                    (mu4e-compose-format-flowed . t)
-                    ))
-           (make-mu4e-context
-            :name "personal"
-            :enter-func (lambda () (mu4e-message "Entering context personal"))
-            :leave-func (lambda () (mu4e-message "Leaving context personal"))
-            :match-func (lambda (msg)
-                          (when msg
-                            (mu4e-message-contact-field-matches
-                             msg '(:from :to :cc :bcc) "srijan4@gmail.com")))
-            :vars '((user-mail-address . "srijan4@gmail.com")
-                    ;; (mu4e-compose-signature . (concat "Srijan Choudhary\n" "https://www.srijn.net\n"))
-                    (mu4e-compose-format-flowed . t)
-                    ))
-           (make-mu4e-context
-            :name "greyorange"
-            :enter-func (lambda () (mu4e-message "Entering context greyorange"))
-            :leave-func (lambda () (mu4e-message "Leaving context greyorange"))
-            :match-func (lambda (msg)
-                          (when msg
-                            (mu4e-message-contact-field-matches
-                             msg '(:from :to :cc :bcc) "srijan.c@greyorange.com")))
-            :vars '((user-mail-address . "srijan.c@greyorange.com")
-                    ;; (mu4e-compose-signature . (concat "Srijan Choudhary\n" "https://www.srijn.net\n"))
-                    (mu4e-compose-format-flowed . t)
-                    ))
-           ))
-    )
-  (use-package org
-    :bind (
-           :map mu4e-headers-mode-map
-           ("C-c i" . org-capture-mail)
-           ;; ("z m" . mu4e-view-mark-thread)
-           :map mu4e-view-mode-map
-           ("C-c i" . org-capture-mail))
-    )
+      ;; Setup mu4e contexts. This is to enable adding multiple email contexts if needed in the future.
+      ;; I will initially only enable my fastmail context but adding a new one shouldn't be harder than copying
+      ;; the existing context and modifying the settings.
+      (setq mu4e-context-policy 'pick-first)
+      (setq mu4e-compose-context-policy 'ask)
+      (setq mu4e-contexts
+            (list
+             (make-mu4e-context
+              :name "fastmail"
+              :enter-func (lambda () (mu4e-message "Entering context fastmail"))
+              :leave-func (lambda () (mu4e-message "Leaving context fastmail"))
+              :match-func (lambda (msg)
+                            (when msg
+                              (mu4e-message-contact-field-matches
+                               msg '(:from :to :cc :bcc) "srijan@fastmail.com")))
+              :vars '((user-mail-address . "srijan@fastmail.com")
+                      ;; (mu4e-compose-signature . (concat "Srijan Choudhary\n" "https://www.srijn.net\n"))
+                      (mu4e-compose-format-flowed . t)
+                      ))
+             (make-mu4e-context
+              :name "personal"
+              :enter-func (lambda () (mu4e-message "Entering context personal"))
+              :leave-func (lambda () (mu4e-message "Leaving context personal"))
+              :match-func (lambda (msg)
+                            (when msg
+                              (mu4e-message-contact-field-matches
+                               msg '(:from :to :cc :bcc) "srijan4@gmail.com")))
+              :vars '((user-mail-address . "srijan4@gmail.com")
+                      ;; (mu4e-compose-signature . (concat "Srijan Choudhary\n" "https://www.srijn.net\n"))
+                      (mu4e-compose-format-flowed . t)
+                      ))
+             (make-mu4e-context
+              :name "greyorange"
+              :enter-func (lambda () (mu4e-message "Entering context greyorange"))
+              :leave-func (lambda () (mu4e-message "Leaving context greyorange"))
+              :match-func (lambda (msg)
+                            (when msg
+                              (mu4e-message-contact-field-matches
+                               msg '(:from :to :cc :bcc) "srijan.c@greyorange.com")))
+              :vars '((user-mail-address . "srijan.c@greyorange.com")
+                      ;; (mu4e-compose-signature . (concat "Srijan Choudhary\n" "https://www.srijn.net\n"))
+                      (mu4e-compose-format-flowed . t)
+                      ))
+             ))
+      )
+    (use-package org
+      :bind (
+             :map mu4e-headers-mode-map
+             ("C-c i" . org-capture-mail)
+             ;; ("z m" . mu4e-view-mark-thread)
+             :map mu4e-view-mode-map
+             ("C-c i" . org-capture-mail))
+      )
 
-  (use-package org-msg
-    :config
-    (setq org-msg-options "html-postamble:nil H:5 num:nil ^:{} toc:nil author:nil email:nil \\n:t"
-          org-msg-startup "hidestars indent inlineimages"
-          org-msg-default-alternatives '((new             . (text html))
-                                         (reply-to-html   . (text html))
-                                         (reply-to-text   . (text)))
-          org-msg-convert-citation t
-          org-msg-signature "
+    (use-package org-msg
+      :config
+      (setq org-msg-options "html-postamble:nil H:5 num:nil ^:{} toc:nil author:nil email:nil \\n:t"
+            org-msg-startup "hidestars indent inlineimages"
+            org-msg-default-alternatives '((new             . (text html))
+                                           (reply-to-html   . (text html))
+                                           (reply-to-text   . (text)))
+            org-msg-convert-citation t
+            org-msg-signature "
 
     ,#+begin_signature
     --
     ,*Srijan Choudhary*
     ,#+end_signature")
-    (org-msg-mode)
-    )
+      (org-msg-mode)
+      )
 
-  (use-package smtpmail
-    :config
+    (use-package smtpmail
+      :config
 
-    (setq sendmail-program "/usr/bin/msmtp"
-          send-mail-function 'smtpmail-send-it
-          message-sendmail-f-is-evil t
-          ;; This allows msmtp to automatically choose the correct account
-          ;; based on from header.
-          message-sendmail-extra-arguments '("--read-envelope-from")
-          message-send-mail-function 'message-send-mail-with-sendmail
-          smtpmail-debug-info t
-          smtpmail-debug-verbose t
-          )
+      (setq sendmail-program "/usr/bin/msmtp"
+            send-mail-function 'smtpmail-send-it
+            message-sendmail-f-is-evil t
+            ;; This allows msmtp to automatically choose the correct account
+            ;; based on from header.
+            message-sendmail-extra-arguments '("--read-envelope-from")
+            message-send-mail-function 'message-send-mail-with-sendmail
+            smtpmail-debug-info t
+            smtpmail-debug-verbose t
+            )
 
-    (setq smtpmail-queue-mail nil)
-    (setq smtpmail-queue-dir "~/Maildir/queue/cur")
-    )
+      (setq smtpmail-queue-mail nil)
+      (setq smtpmail-queue-dir "~/Maildir/queue/cur")
+      ))
 #+end_src
 
 ** COMMENT Org journal
