@@ -73,7 +73,7 @@ Here's how we start:
   (tool-bar-mode -1)
   (tooltip-mode -1)
   (scroll-bar-mode -1)
-  (menu-bar-mode -1)
+  ;; (menu-bar-mode -1)
   (set-fringe-mode 10)
 
   ;; (global-display-line-numbers-mode 1)
@@ -415,6 +415,40 @@ Here's how we start:
      ))
 
 #+END_SRC
+** Notes
+#+begin_src emacs-lisp
+  (use-package denote
+    :custom
+    (denote-directory (expand-file-name "~/ndxrd-uxxs3/notes/"))
+    (denote-known-keywords '("emacs" "philosophy" "politics" "economics"))
+    (denote-infer-keywords t)
+    (denote-sort-keywords t)
+    (denote-date-prompt-use-org-read-date t)
+    (denote-backlinks-show-context t)
+    :config
+    (defun my-denote-journal ()
+      "Create an entry tagged 'journal' with the date as its title.
+       If a journal for the current day exists, visit it.  If multiple
+       entries exist, prompt with completion for a choice between them.
+       Else create a new file."
+      (interactive)
+      (let* ((today (format-time-string "%A %e %B %Y"))
+             (string (denote-sluggify today))
+             (files (denote-directory-files-matching-regexp string)))
+        (cond
+         ((> (length files) 1)
+          (find-file (completing-read "Select file: " files nil :require-match)))
+         (files
+          (find-file (car files)))
+         (t
+          (denote
+           today
+           '("journal"))))))
+    :bind
+    ("C-c n j" . my-denote-journal)
+    )
+
+#+end_src
 ** COMMENT Org mode manual setup
 #+BEGIN_SRC emacs-lisp
   (use-package org
@@ -670,12 +704,15 @@ Here's how we start:
 ** Learning & Discovering
 #+begin_src emacs-lisp
   (use-package command-log-mode
-   :config
-   (global-command-log-mode))
+    :config
+    (global-command-log-mode))
+
+  (use-package which-key
+    :config (which-key-mode 1))
 
   (defun my-reload-emacs-configuration ()
     (interactive)
-    (load-file "~/.config/nano-emacs/init.el"))
+    (load-file "~/.config/s-emacs/init.el"))
 #+end_src
 ** Create awesome command combos and menus with hydra
 #+begin_src emacs-lisp
@@ -950,7 +987,7 @@ WARN: This makes emacs on Windows extremely slow
     :init
     (setq alert-default-style 'notifications))
 #+end_src
-** Github copilot
+** AI Assistants
 #+begin_src emacs-lisp
   (use-package copilot
     :diminish
@@ -964,7 +1001,18 @@ WARN: This makes emacs on Windows extremely slow
            ("<tab>" . 'copilot-accept-completion)
            ("TAB" . 'copilot-accept-completion))
     )
-#+end_src
+
+  (use-package auth-source-1password
+    :config
+    (auth-source-1password-enable))
+
+  (use-package chatgpt-shell
+    :ensure t
+    :custom
+    ((chatgpt-shell-openai-key
+      (lambda ()
+        (auth-source-pick-first-password :host "openai-key" :user "credential")))))
+    #+end_src
 ** COMMENT Wakatime
 #+begin_src emacs-lisp
   (use-package wakatime-mode
