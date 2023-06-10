@@ -12,7 +12,6 @@ This will generate a header at the top of the tangled file to indicate it is gen
 ;; This file has been generated from config.org file. DO NOT EDIT.
 
 #+end_src
-
 ** Starting up
 Here's how we start:
 #+NAME: startup
@@ -55,14 +54,12 @@ Here's how we start:
   (when my-phone-p (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3"))
   (global-auto-revert-mode)  ; simplifies syncing
 #+END_SRC
-
 ** Personal Information
 
 #+BEGIN_SRC emacs-lisp
   (setq user-full-name "Srijan Choudhary"
       user-mail-address "srijan4@gmail.com")
 #+END_SRC
-
 ** Basics / Misc
 #+begin_src emacs-lisp
 
@@ -96,6 +93,9 @@ Here's how we start:
 
   ;; Fill column at 120
   (setq fill-column 120)
+
+  (add-hook 'text-mode-hook
+            'variable-pitch-mode)
 
 #+end_src
 
@@ -133,6 +133,7 @@ Here's how we start:
          (berkeley-regular
           :default-family "Berkeley Mono"
           :default-height 140
+          :line-spacing 0.1
           :variable-pitch-family "Berkeley Mono Variable"
           )
          (berkeley-large
@@ -165,19 +166,19 @@ Here's how we start:
 
 
   ;; Themes
-  (use-package doom-themes
-    :disabled t
-    ;; :ensure t
-    :config
-    (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
-          doom-themes-enable-italic t) ; if nil, italics is universally disabled
+  ;; (use-package doom-themes
+  ;;   :disabled t
+  ;;   ;; :ensure t
+  ;;   :config
+  ;;   (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
+  ;;         doom-themes-enable-italic t) ; if nil, italics is universally disabled
 
-    ;; (load-theme 'doom-Iosvkem t)
-    (doom-themes-visual-bell-config)
-    (setq doom-themes-treemacs-theme "doom-atom") ; use "doom-colors" for less minimal icon theme
-    (doom-themes-treemacs-config)
-    ;; Corrects (and improves) org-mode's native fontification.
-    (doom-themes-org-config))
+  ;;   ;; (load-theme 'doom-Iosvkem t)
+  ;;   (doom-themes-visual-bell-config)
+  ;;   (setq doom-themes-treemacs-theme "doom-atom") ; use "doom-colors" for less minimal icon theme
+  ;;   (doom-themes-treemacs-config)
+  ;;   ;; Corrects (and improves) org-mode's native fontification.
+  ;;   (doom-themes-org-config))
 
   ;; (use-package catppuccin-theme
   ;;   :straight (:type git :host github :repo "catppuccin/emacs"))
@@ -186,33 +187,29 @@ Here's how we start:
   ;; (load-theme 'modus-operandi t)
   ;; (load-theme 'modus-operandi-tinted t)
   (use-package ef-themes
+    :demand
     :custom
     (ef-themes-to-toggle '(ef-spring ef-bio))
-    (ef-themes-headings ; read the manual's entry or the doc string
-     '((0 . (variable-pitch light 1.4))
-       (1 . (variable-pitch light 1.3))
-       (2 . (variable-pitch regular 1.2))
-       (3 . (variable-pitch regular 1.1))
-       (4 . (variable-pitch regular 1.1))
-       (5 . (variable-pitch 1.0)) ; absence of weight means `bold'
-       (6 . (variable-pitch 1.0))
-       (7 . (variable-pitch 1.0))
-       (t . (variable-pitch 1.0))))
+    (ef-themes-headings
+     '((0 . (variable-pitch semibold 1.2))
+       (1 . (variable-pitch semibold 1.1))
+       (agenda-date . (variable-pitch 1.2))
+       (agenda-structure . (variable-pitch 1.4))
+       (t . (variable-pitch))
+       ))
     (ef-themes-mixed-fonts t)
     (ef-themes-variable-pitch-ui t)
+    :hook ((ef-themes-post-load . my-ef-themes-mode-line)
+           (ef-themes-post-load . fontaine-apply-current-preset))
     :config
     (defun my-ef-themes-mode-line ()
       "Tweak the style of the mode lines."
       (ef-themes-with-colors
         (custom-set-faces
-         ;; `(mode-line ((,c :background ,bg-active :foreground ,fg-main :box (:line-width 1 :color ,fg-dim))))
          `(mode-line ((,c :background ,bg-mode-line :foreground ,fg-mode-line :box (:line-width 1 :color ,fg-dim))))
          `(mode-line-inactive ((,c :box (:line-width 1 :color ,bg-active)))))))
-
-    (add-hook 'ef-themes-post-load-hook #'my-ef-themes-mode-line)
-    (add-hook 'ef-themes-post-load-hook #'fontaine-apply-current-preset)
-    (ef-themes-select 'ef-spring)
     )
+  (ef-themes-select 'ef-spring)
   (use-package olivetti
     :custom
     (olivetti-style 'fancy)
@@ -366,13 +363,14 @@ Here's how we start:
   (use-package diminish
     :config (require 'diminish))
   (use-package eldoc :diminish eldoc-mode)
-  (use-package all-the-icons)
+  (use-package all-the-icons :disabled t)
   (use-package nerd-icons)
   (use-package doom-modeline
     :ensure t
     :init
     (doom-modeline-mode 1))
 #+end_src
+
 ** Org and GTD
 #+BEGIN_SRC emacs-lisp
   (use-package org
@@ -381,7 +379,10 @@ Here's how we start:
     :hook ((org-capture-mode . delete-other-windows)
            (org-capture-mode . evil-insert-state))
     :custom
+    (org-agenda-files nil) ;; Will be set automatically by org-gtd
     (org-ellipsis " ▼")
+    (org-cycle-separator-lines 1)
+    ;; (org-pretty-entities t)
 
     (org-agenda-start-with-log-mode t)
     (org-agenda-window-setup 'only-window)
@@ -509,132 +510,6 @@ Here's how we start:
     )
 
 #+end_src
-** COMMENT Org mode manual setup
-#+BEGIN_SRC emacs-lisp
-  (use-package org
-    :straight (:type built-in)
-    :ensure org-plus-contrib
-    :hook ((org-capture-mode . delete-other-windows)
-           (org-capture-mode . evil-insert-state))
-    :custom
-    (org-directory "~/ndxrd-uxxs3/org")
-    (org-agenda-files (list "inbox.org" "work-projects.org" "tickler.org" "MobileInbox.org"))
-    (org-capture-templates '(("i" "Inbox" entry (file "inbox.org")
-                              "* TODO %i%?\n/Entered on/ %U")
-                             ("@" "Inbox [mu4e]" entry (file "inbox.org")
-                              "* TODO <Process> \"%a\" %?\n/Entered on/ %U")
-                             ("T" "Tickler" entry
-                              (file+headline "~/ndxrd-uxxs3/org/tickler.org" "Tickler")
-                              "* %i%? \n %U")
-                             ("p" "Protocol" entry
-                              (file+headline "~/ndxrd-uxxs3/org/notes.org" "Inbox")
-                              "* %^{Title}\nSource: %u, %c\n #+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n\n%?")
-                             ("L" "Protocol Link" entry
-                              (file+headline "~/ndxrd-uxxs3/org/read-later.org" "Read Later")
-                              "* %:description%?\n%:link\nCaptured: %U\n"
-                              :immediate-finish t
-                              :empty-lines 1)
-                             ))
-    (org-refile-targets '(("~/ndxrd-uxxs3/org/gtd.org" :maxlevel . 3)
-                          ("~/ndxrd-uxxs3/org/someday.org" :level . 1)
-                          ("~/ndxrd-uxxs3/org/tickler.org" :maxlevel . 2)))
-    (org-todo-keywords '((sequence "TODO(t)" "WAITING(w)" "|" "DONE(d)" "CANCELLED(c)")))
-    (org-ellipsis " ▼")
-    (org-agenda-start-with-log-mode t)
-    (org-agenda-window-setup 'only-window)
-    (org-log-into-drawer t)
-    (org-log-done 'time)
-    (org-startup-indented t)
-    (org-image-actual-width nil) ;;((list 500))
-    (org-startup-with-inline-images t)
-    (org-clock-persist 'history)
-
-    :config
-    (require 'org-protocol)
-    (defun org-capture-inbox ()
-      (interactive)
-      (call-interactively 'org-store-link)
-      (org-capture nil "i"))
-    (defun org-capture-mail ()
-      (interactive)
-      (call-interactively 'org-store-link)
-      (org-capture nil "@"))
-
-    (defun my/delete-capture-frame (&rest _)
-      "Delete frame with its name frame-parameter set to \"capture\"."
-      (if (equal "desktop-capture" (frame-parameter nil 'name))
-          (delete-frame)))
-    (advice-add 'org-capture-finalize :after #'my/delete-capture-frame)
-
-    (advice-add 'org-open-at-point :before #'evil-set-jump)
-
-    (when my-linux-p
-      (org-clock-persistence-insinuate)
-      (defun current-clock-time-to-file ()
-        (interactive)
-        (with-temp-file "~/.local/state/task"
-          (if (org-clocking-p)
-              (insert (org-clock-get-clock-string))
-            (insert "No Task"))))
-      (run-with-timer 1 60 'current-clock-time-to-file)
-      (add-hook 'org-clock-in-hook 'current-clock-time-to-file)
-      (add-hook 'org-clock-out-hook 'current-clock-time-to-file))
-
-    :bind
-    ("C-c i" . org-capture-inbox)
-    ("C-c a" . org-agenda)
-    ("C-c c" . org-capture)
-    ("C-c l" . org-store-link)
-    )
-
-#+END_SRC
-
-#+BEGIN_SRC emacs-lisp
-  (use-package dash)
-  (setq org-archive-default-command #'org-archive-subtree-hierarchically)
-
-  (defun org-archive-subtree-hierarchically (&optional prefix)
-    (interactive "P")
-    (let* ((fix-archive-p (and (not prefix)
-                               (not (use-region-p))))
-           (afile  (car (org-archive--compute-location
-                         (or (org-entry-get nil "ARCHIVE" 'inherit) org-archive-location))))
-           (buffer (or (find-buffer-visiting afile) (find-file-noselect afile))))
-      (org-archive-subtree prefix)
-      (when fix-archive-p
-        (with-current-buffer buffer
-          (goto-char (point-max))
-          (while (org-up-heading-safe))
-          (let* ((olpath (org-entry-get (point) "ARCHIVE_OLPATH"))
-                 (path (and olpath (split-string olpath "/")))
-                 (level 1)
-                 tree-text)
-            (when olpath
-              (org-mark-subtree)
-              (setq tree-text (buffer-substring (region-beginning) (region-end)))
-              (let (this-command (inhibit-message t)) (org-cut-subtree)) ; we don’t want to see "Cut subtree" messages
-              (goto-char (point-min))
-              (save-restriction
-                (widen)
-                (-each path
-                  (lambda (heading)
-                    (if (re-search-forward
-                         (rx-to-string
-                          `(: bol (repeat ,level "*") (1+ " ") ,heading)) nil t)
-                        (org-narrow-to-subtree)
-                      (goto-char (point-max))
-                      (unless (looking-at "^")
-                        (insert "\n"))
-                      (insert (make-string level ?*)
-                              " "
-                              heading
-                              "\n"))
-                    (cl-incf level)))
-                (widen)
-                (org-end-of-subtree t t)
-                (org-paste-subtree level tree-text))))))))
-
-#+END_SRC
 ** Ediff
 #+BEGIN_SRC emacs-lisp
 (use-package ediff
@@ -729,6 +604,7 @@ Here's how we start:
     (org-present-mode-quit . my/org-present-end)
     )
 #+end_src
+
 ** COMMENT Workspaces - tabspaces
 #+BEGIN_SRC emacs-lisp
   (use-package tabspaces
@@ -761,6 +637,7 @@ Here's how we start:
     (unless (equal persp-mode t)
       (persp-mode)))
   #+end_src
+
 ** Learning & Discovering
 #+begin_src emacs-lisp
   (use-package command-log-mode
@@ -1001,7 +878,8 @@ WARN: This makes emacs on Windows extremely slow
     (use-package flyspell
       :hook text-mode))
 #+END_SRC
-** Slack
+
+** COMMENT Slack
 #+begin_src emacs-lisp
   (use-package slack
     :commands (slack-start)
@@ -1012,8 +890,8 @@ WARN: This makes emacs on Windows extremely slow
     (slack-register-team
      :name "greyorange"
      :default t
-     :token "***REMOVED***"
-     :cookie "***REMOVED***"
+     :token ""
+     :cookie ""
      :subscribed-channels '(builds-gtp-core builds-gm-ui)
      :full-and-display-names t)
     (setq slack-enable-global-mode-string t)
