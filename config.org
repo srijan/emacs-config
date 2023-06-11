@@ -111,6 +111,8 @@ Here's how we start:
   (set-fringe-mode 10)
   (hl-line-mode 1)
   (blink-cursor-mode -1)
+  (add-to-list 'default-frame-alist '(height . 40))
+  (add-to-list 'default-frame-alist '(width . 140))
 
 
   ;; Fonts
@@ -506,6 +508,7 @@ Here's how we start:
            today
            '("journal"))))))
     :bind
+    ("C-c n n" . denote)
     ("C-c n j" . my-denote-journal)
     )
 
@@ -524,7 +527,7 @@ Here's how we start:
   ;; show the ediff command buffer in the same frame
   (add-to-list 'command-switch-alist '("-diff" . my/command-line-diff)))
 #+END_SRC
-** File tree
+** COMMENT File tree
 #+begin_src emacs-lisp
   (use-package treemacs
     :init
@@ -603,6 +606,18 @@ Here's how we start:
     (org-present-mode . my/org-present-start)
     (org-present-mode-quit . my/org-present-end)
     )
+#+end_src
+
+** Workspaces - beframe
+#+begin_src emacs-lisp
+  (use-package beframe
+    :demand
+    :custom
+    (beframe-functions-in-frames '(project-prompt-project-dir))
+    :config
+    (beframe-mode 1)
+    )
+
 #+end_src
 
 ** COMMENT Workspaces - tabspaces
