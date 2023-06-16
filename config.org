@@ -107,11 +107,11 @@ Here's how we start:
   (tool-bar-mode -1)
   (tooltip-mode -1)
   (scroll-bar-mode -1)
-  ;; (menu-bar-mode -1)
+  (menu-bar-mode -1)
   (set-fringe-mode 10)
   (hl-line-mode 1)
   (blink-cursor-mode -1)
-  (add-to-list 'default-frame-alist '(height . 40))
+  (add-to-list 'default-frame-alist '(height . 35))
   (add-to-list 'default-frame-alist '(width . 140))
 
 
@@ -137,6 +137,8 @@ Here's how we start:
           :default-height 140
           :line-spacing 0.1
           :variable-pitch-family "Berkeley Mono Variable"
+          ;; :variable-pitch-family "Merriweather Sans Light"
+          ;; :variable-pitch-height 0.96
           )
          (berkeley-large
           :inherit berkeley-regular
@@ -245,6 +247,7 @@ Here's how we start:
   (global-set-key (kbd "C-x ,") (lambda() (interactive) (find-file (locate-user-emacs-file "config.org"))))
 
   (use-package intuitive-tab-line
+    :disabled
     :straight (:type git :host github :repo "thread314/intuitive-tab-line-mode")
     ;; :load-path "git/intuitive-tab-line-mode"
     :custom
@@ -608,7 +611,7 @@ Here's how we start:
     )
 #+end_src
 
-** Workspaces - beframe
+** COMMENT Workspaces - beframe
 #+begin_src emacs-lisp
   (use-package beframe
     :demand
@@ -619,23 +622,69 @@ Here's how we start:
     )
 
 #+end_src
-
-** COMMENT Workspaces - tabspaces
+** Workspaces - tabspaces and tab-bar
 #+BEGIN_SRC emacs-lisp
   (use-package tabspaces
+    :demand t
+    :after consult
     :straight (:type git :host github :repo "mclear-tools/tabspaces")
     :hook (after-init . tabspaces-mode)
-    commands (tabspaces-switch-or-create-workspace
-              tabspaces-open-or-create-project-and-workspace)
+    :commands (tabspaces-switch-or-create-workspace
+               tabspaces-open-or-create-project-and-workspace)
     :custom
     (tabspaces-use-filtered-buffers-as-default t)
     (tabspaces-default-tab "Default")
     (tabspaces-remove-to-default t)
-    (tabspaces-include-buffers '("*scratch*"))
+    (tabspaces-include-buffers '("*scratch*" "*Messages*" "*Warnings*"))
     ;; sessions
     (tabspaces-session t)
     (tabspaces-session-auto-restore t)
+
+    :config
+    ;; consult-specific
+    ;; hide full buffer list (still available with "b" prefix)
+    (consult-customize consult--source-buffer :hidden t :default nil)
+    ;; set consult-workspace buffer list
+    (defvar consult--source-workspace
+      (list :name     "Workspace Buffers"
+            :narrow   ?w
+            :history  'buffer-name-history
+            :category 'buffer
+            :state    #'consult--buffer-state
+            :default  t
+            :items    (lambda () (consult--buffer-query
+                                  :predicate #'tabspaces--local-buffer-p
+                                  :sort 'visibility
+                                  :as #'buffer-name)))
+
+      "Set workspace buffer list for consult-buffer.")
+    (add-to-list 'consult-buffer-sources 'consult--source-workspace)
     )
+  (use-package tab-bar
+    :config
+    (defun tab-bar-format-menu-bar ()
+      "Produce the Menu button for the tab bar that shows the menu bar."
+      `((menu-bar menu-item (propertize " 𝝺 " 'face 'tab-bar-tab-inactive)
+                  tab-bar-menu-bar :help "Menu Bar")))
+    (defun my/tab-bar-tab-name-format-comfortable (tab i)
+      (propertize (concat " " (tab-bar-tab-name-format-default tab i) " ")
+                  'face (funcall tab-bar-tab-face-function tab)))
+    (setq tab-bar-tab-name-format-function #'my/tab-bar-tab-name-format-comfortable)
+
+    (setq tab-bar-format '(tab-bar-format-menu-bar
+                           ;; tab-bar-format-history
+                           tab-bar-format-tabs
+                           tab-bar-separator
+                           tab-bar-format-add-tab
+                           ;;tab-bar-format-align-right
+                           ;;tab-bar-format-global
+                           )
+          tab-bar-close-button-show nil)
+    )
+  (use-package keycast
+    :after tab-bar
+    :config
+    (keycast-tab-bar-mode 1))
 #+END_SRC
 ** COMMENT Workspaces - perspective
 #+begin_src emacs-lisp
@@ -665,43 +714,6 @@ Here's how we start:
   (defun my-reload-emacs-configuration ()
     (interactive)
     (load-file "~/.config/s-emacs/init.el"))
-#+end_src
-** Create awesome command combos and menus with hydra
-#+begin_src emacs-lisp
-  (use-package hydra
-    :straight t)
-
-  (use-package use-package-hydra
-    :straight t)
-
-  (defhydra hydra-straight-helper (:hint nil :color pink)
-            "
-  _c_: check all       _f_: fetch all     _m_: merge all       _n_: normalize all      _u_: push all
-  _C_: check package   _F_: fetch package _M_: merge package   _N_: normalize package  _U_: push package
-  _r_: rebuild all     _p_: pull all      _w_: watcher start   _g_: get recipe         _v_: versions freeze
-  _R_: rebuild package _P_: pull package  _W_: watcher quit    _e_: prune build        _q_: quit
-  "
-            ("c" straight-check-all)
-            ("C" straight-check-package)
-            ("r" straight-rebuild-all)
-            ("R" straight-rebuild-package)
-            ("f" straight-fetch-all)
-            ("F" straight-fetch-package)
-            ("p" straight-pull-all)
-            ("P" straight-pull-package)
-            ("m" straight-merge-all)
-            ("M" straight-merge-package)
-            ("n" straight-normalize-all)
-            ("N" straight-normalize-package)
-            ("u" straight-push-all)
-            ("U" straight-push-package)
-            ("w" straight-watcher-start)
-            ("W" straight-watcher-quit)
-            ("g" straight-get-recipe)
-            ("e" straight-prune-build)
-            ("v" straight-freeze-versions)
-            ("q" nil :color blue))
-
 #+end_src
 ** COMMENT Completions based on selectrum
 #+BEGIN_SRC emacs-lisp
@@ -755,7 +767,7 @@ Here's how we start:
   ;;   (mini-frame-mode))
 
 #+END_SRC
-** Completions - vertico & friends
+** Completions - consult, vertico & friends
 #+begin_src emacs-lisp
   (use-package savehist
     :config
@@ -764,7 +776,7 @@ Here's how we start:
 
   (defun dw/minibuffer-backward-kill (arg)
     "When minibuffer is completing a file name delete up to parent
-        folder, otherwise delete a word"
+             folder, otherwise delete a word"
     (interactive "p")
     (if minibuffer-completing-file-name
         ;; Borrowed from https://github.com/raxod502/selectrum/issues/498#issuecomment-803283608
@@ -818,16 +830,114 @@ Here's how we start:
   (use-package consult
     :straight t
     :demand t
-    :bind (("C-s" . consult-line)
-           ("C-M-l" . consult-imenu)
-           ("C-M-j" . persp-switch-to-buffer*)
+    ;; Replace bindings. Lazily loaded due by `use-package'.
+    :bind (
+           ;; My bindings
+           ("C-s" . consult-line)
+           ;; C-c bindings in `mode-specific-map'
+           ("C-c M-x" . consult-mode-command)
+           ("C-c h" . consult-history)
+           ("C-c k" . consult-kmacro)
+           ("C-c m" . consult-man)
+           ("C-c i" . consult-info)
+           ([remap Info-search] . consult-info)
+           ;; C-x bindings in `ctl-x-map'
+           ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
+           ("C-x b" . consult-buffer)                ;; orig. switch-to-buffer
+           ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
+           ("C-x 5 b" . consult-buffer-other-frame)  ;; orig. switch-to-buffer-other-frame
+           ("C-x r b" . consult-bookmark)            ;; orig. bookmark-jump
+           ("C-x p b" . consult-project-buffer)      ;; orig. project-switch-to-buffer
+           ;; Custom M-# bindings for fast register access
+           ("M-#" . consult-register-load)
+           ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
+           ("C-M-#" . consult-register)
+           ;; Other custom bindings
+           ("M-y" . consult-yank-pop)                ;; orig. yank-pop
+           ;; M-g bindings in `goto-map'
+           ("M-g e" . consult-compile-error)
+           ("M-g f" . consult-flymake)               ;; Alternative: consult-flycheck
+           ("M-g g" . consult-goto-line)             ;; orig. goto-line
+           ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
+           ("M-g o" . consult-outline)               ;; Alternative: consult-org-heading
+           ("M-g m" . consult-mark)
+           ("M-g k" . consult-global-mark)
+           ("M-g i" . consult-imenu)
+           ("M-g I" . consult-imenu-multi)
+           ;; M-s bindings in `search-map'
+           ("M-s d" . consult-find)
+           ("M-s D" . consult-locate)
+           ("M-s g" . consult-grep)
+           ("M-s G" . consult-git-grep)
+           ("M-s r" . consult-ripgrep)
+           ("M-s l" . consult-line)
+           ("M-s L" . consult-line-multi)
+           ("M-s k" . consult-keep-lines)
+           ("M-s u" . consult-focus-lines)
+           ;; Isearch integration
+           ("M-s e" . consult-isearch-history)
+           :map isearch-mode-map
+           ("M-e" . consult-isearch-history)         ;; orig. isearch-edit-string
+           ("M-s e" . consult-isearch-history)       ;; orig. isearch-edit-string
+           ("M-s l" . consult-line)                  ;; needed by consult-line to detect isearch
+           ("M-s L" . consult-line-multi)            ;; needed by consult-line to detect isearch
+           ;; Minibuffer history
            :map minibuffer-local-map
-           ("C-r" . consult-history))
+           ("M-s" . consult-history)                 ;; orig. next-matching-history-element
+           ("M-r" . consult-history))                ;; orig. previous-matching-history-element
+
+    ;; Enable automatic preview at point in the *Completions* buffer. This is
+    ;; relevant when you use the default completion UI.
+    :hook (completion-list-mode . consult-preview-at-point-mode)
+
+    ;; The :init configuration is always executed (Not lazy)
+    :init
+
+    ;; Optionally configure the register formatting. This improves the register
+    ;; preview for `consult-register', `consult-register-load',
+    ;; `consult-register-store' and the Emacs built-ins.
+    (setq register-preview-delay 0.5
+          register-preview-function #'consult-register-format)
+
+    ;; Optionally tweak the register preview window.
+    ;; This adds thin lines, sorting and hides the mode line of the window.
+    (advice-add #'register-preview :override #'consult-register-window)
+
+    ;; Use Consult to select xref locations with preview
+    (setq xref-show-xrefs-function #'consult-xref
+          xref-show-definitions-function #'consult-xref)
+
     :custom
     (consult-project-root-function #'dw/get-project-root)
     (completion-in-region-function #'consult-completion-in-region)
-    ;; :config
-    ;; (consult-preview-mode)
+
+    ;; Configure other variables and modes in the :config section,
+    ;; after lazily loading the package.
+    :config
+
+    ;; Optionally configure preview. The default value
+    ;; is 'any, such that any key triggers the preview.
+    ;; (setq consult-preview-key 'any)
+    ;; (setq consult-preview-key "M-.")
+    ;; (setq consult-preview-key '("S-<down>" "S-<up>"))
+    ;; For some commands and buffer sources it is useful to configure the
+    ;; :preview-key on a per-command basis using the `consult-customize' macro.
+    (consult-customize
+     consult-theme :preview-key '(:debounce 0.2 any)
+     consult-ripgrep consult-git-grep consult-grep
+     consult-bookmark consult-recent-file consult-xref
+     consult--source-bookmark consult--source-file-register
+     consult--source-recent-file consult--source-project-recent-file
+     ;; :preview-key "M-."
+     :preview-key '(:debounce 0.4 any))
+
+    ;; Optionally configure the narrowing key.
+    ;; Both < and C-+ work reasonably well.
+    (setq consult-narrow-key "<") ;; "C-+"
+
+    ;; Optionally make narrowing help available in the minibuffer.
+    ;; You may want to use `embark-prefix-help-command' or which-key instead.
+    ;; (define-key consult-narrow-map (vconcat consult-narrow-key "?") #'consult-narrow-help)
     )
 
   (use-package marginalia
@@ -861,7 +971,7 @@ WARN: This makes emacs on Windows extremely slow
     (use-package project
       :config
       (defcustom project-root-markers
-        '("inbox.org")
+        '(".project")
         "Files or directories that indicate the root of a project."
         :type '(repeat string)
         :group 'project)
