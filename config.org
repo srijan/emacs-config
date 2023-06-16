@@ -1183,11 +1183,23 @@ WARN: This makes emacs on Windows extremely slow
      mu4e-get-mail-command "systemctl --user start mbsync.service" ;; "mbsync fastmail-all"
      mu4e-view-prefer-html t
      ;; mu4e-update-interval 180
-     mu4e-headers-auto-update nil
+     mu4e-headers-auto-update t
      mu4e-search-include-related nil
      mu4e-compose-signature-auto-include nil
      mu4e-compose-format-flowed t
+     mu4e-use-fancy-chars t
+     mu4e-headers-visible-flags '(draft flagged new passed replied trashed attach encrypted signed)
+     mu4e-headers-fields '((:human-date . 12)
+                           (:flags . 6)
+                           (:from-or-to . 32)
+                           (:subject))
+     mu4e-headers-date-format "%Y-%m-%d"
+     mu4e-headers-from-or-to-prefix '("" . "To: ")
+     mu4e-headers-leave-behavior 'apply
+     mu4e-hide-index-messages t
+     message-kill-buffer-on-exit t
      )
+
 
     (defun my-mu4e-refile-folder-fun (msg)
       "Set the refile folder for MSG."
@@ -1318,6 +1330,13 @@ WARN: This makes emacs on Windows extremely slow
                     (mu4e-compose-format-flowed . t)
                     ))
            ))
+
+    ;; Allow replying to calendar events
+    ;; https://www.djcbsoftware.nl/code/mu/mu4e/iCalendar.html
+    (require 'mu4e-icalendar)
+    (mu4e-icalendar-setup)
+    (setq mu4e-icalendar-trash-after-reply t)
+
     )
   (use-package org
     :if my-linux-p
