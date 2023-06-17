@@ -453,7 +453,8 @@ Here's how we start:
     :init
     (setq org-gtd-update-ack "3.0.0")
     (setq org-gtd-areas-of-focus '("Work Leadership" "Work Architecture" "Work Support"
-                                   "Productivity" "Personal Development" "Family" "Health" "Finances"))
+                                   "Productivity" "Personal Development" "Personal Services"
+                                   "Family" "Health" "Finances"))
     :custom
     (org-gtd-directory "~/ndxrd-uxxs3/org/")
     (org-edna-use-inheritance t)
@@ -491,14 +492,39 @@ Here's how we start:
     (denote-sort-keywords t)
     (denote-date-prompt-use-org-read-date t)
     (denote-backlinks-show-context t)
+    (denote-templates
+     `((weekly-review . ,(f-read (expand-file-name
+                                  "templates/weekly-review.org"
+                                  user-emacs-directory)))))
     :config
+    (defun my-weekly-review-journal ()
+      "Create an entry tagged 'weeklyreview' with the year and week as
+       its title using the 'weekly-review' template. If a note for
+       the current week exists, visit it.  If multiple entries
+       exist, prompt with completion for a choice between them.
+       Else create a new file."
+      (interactive)
+      (let* ((denote-directory (concat denote-directory "journals/"))
+             ;; Year corresponding to ISO week + ISO week
+             (week (format-time-string "%G W%V"))
+             (string (denote-sluggify week))
+             (files (denote-directory-files-matching-regexp string))
+             )
+        (cond
+         ((> (length files) 1)
+          (find-file (completing-read "Select file: " files nil :require-match)))
+         (files
+          (find-file (car files)))
+         (t
+          (denote week '("weeklyreview") nil nil nil 'weekly-review)))))
     (defun my-denote-journal ()
       "Create an entry tagged 'journal' with the date as its title.
        If a journal for the current day exists, visit it.  If multiple
        entries exist, prompt with completion for a choice between them.
        Else create a new file."
       (interactive)
-      (let* ((today (format-time-string "%A %e %B %Y"))
+      (let* ((denote-directory (concat denote-directory "journals/"))
+             (today (format-time-string "%A %e %B %Y"))
              (string (denote-sluggify today))
              (files (denote-directory-files-matching-regexp string)))
         (cond
@@ -507,12 +533,11 @@ Here's how we start:
          (files
           (find-file (car files)))
          (t
-          (denote
-           today
-           '("journal"))))))
+          (denote today '("journal"))))))
     :bind
     ("C-c n n" . denote)
     ("C-c n j" . my-denote-journal)
+    ("C-c n r" . my-weekly-review-journal)
     )
 
 #+end_src
