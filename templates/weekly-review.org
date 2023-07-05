@@ -21,6 +21,8 @@
 
 - [ ] Clear off my desk
 
+- [ ] Process GTD Inbox to zero
+
 * Get Current
 
 - [ ] Review my **Next Actions** list
@@ -35,11 +37,11 @@
   Review upcoming calendar events - long and short term. Capture
   actions triggered.
 
-  - [ ] Review my **Waiting For** list
+- [ ] Review my **Waiting For** list and email folder
   Record appropriate actions for any needed follow-up. Check off
   received ones.
 
-  - [ ] Review project (and larger outcome) lists
+- [ ] Review project (and larger outcome) lists
   Evaluate status of projects, goals, and outcomes, one by one,
   ensuring at least one current next action item on each. Browse
   through project plans, support material, and any other
