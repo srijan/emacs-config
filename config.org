@@ -581,6 +581,14 @@ Here's how we start:
     ("C-c n j" . my-denote-journal)
     ("C-c n r" . my-weekly-review-journal)
     )
+  (use-package consult-notes
+    :init
+    (require 'denote)
+    :config
+    (consult-notes-denote-mode 1)
+    :bind
+    ("C-c n f" . consult-notes)
+    )
 
 #+end_src
 ** Ediff
