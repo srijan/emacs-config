@@ -126,12 +126,12 @@ Here's how we start:
        '(
          (iosevka-regular
           :default-family "Iosevka Comfy"
-          :default-height 140
+          :default-height 120
           :variable-pitch-family "Iosevka Comfy Duo"
           )
          (berkeley-regular
           :default-family "Berkeley Mono"
-          :default-height 140
+          :default-height 120
           :line-spacing 0.1
           :variable-pitch-family "Berkeley Mono Variable"
           ;; :variable-pitch-family "Merriweather Sans Light"
@@ -144,7 +144,7 @@ Here's how we start:
          (t
           :default-family "Iosevka Comfy"
           :default-weight regular
-          :default-height 140
+          :default-height 120
           :fixed-pitch-family nil ; falls back to :default-family
           :fixed-pitch-weight nil ; falls back to :default-weight
           :fixed-pitch-height 1.0
