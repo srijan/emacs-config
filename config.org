@@ -63,9 +63,6 @@ Here's how we start:
 ** Basics / Misc
 #+begin_src emacs-lisp
 
-  ;; TODO: move to org section
-  (setq org-support-shift-select t)
-
   ;; Recent files
   (recentf-mode 1)
 
@@ -193,7 +190,7 @@ Here's how we start:
   (use-package ef-themes
     :demand
     :custom
-    (ef-themes-to-toggle '(ef-spring ef-bio))
+    (ef-themes-to-toggle '(ef-elea-light ef-elea-dark))
     (ef-themes-headings
      '((0 . (variable-pitch semibold 1.2))
        (1 . (variable-pitch semibold 1.1))
@@ -213,7 +210,7 @@ Here's how we start:
          `(mode-line ((,c :background ,bg-mode-line :foreground ,fg-mode-line :box (:line-width 1 :color ,fg-dim))))
          `(mode-line-inactive ((,c :box (:line-width 1 :color ,bg-active)))))))
     )
-  (ef-themes-select 'ef-spring)
+  (ef-themes-select 'ef-elea-dark)
   (use-package olivetti
     :custom
     (olivetti-style 'fancy)
@@ -384,6 +381,7 @@ Here's how we start:
     :hook ((org-capture-mode . delete-other-windows)
            (org-capture-mode . evil-insert-state))
     :custom
+    (org-support-shift-select t)
     (org-agenda-files nil) ;; Will be set automatically by org-gtd
     (org-ellipsis " ▼")
     (org-cycle-separator-lines 1)
