@@ -327,7 +327,7 @@ Here's how we start:
       ))
 
   (use-package evil-collection
-    :straight (:type git :host github :repo "emacs-evil/evil-collection" :fork t)
+    :straight (:type git :host github :repo "emacs-evil/evil-collection")
     :diminish (evil-collection-unimpaired-mode)
     :after evil mu4e
     :ensure t
