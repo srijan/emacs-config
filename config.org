@@ -1019,12 +1019,15 @@ WARN: This makes emacs on Windows extremely slow
       (add-to-list 'project-find-functions #'project-find-root)
       ))
 #+END_SRC
-** COMMENT Dictionary and spelling
+** Dictionary and spelling
 #+BEGIN_SRC emacs-lisp
   (when my-linux-p
     (setq dictionary-server "localhost")
     (use-package flyspell
-      :hook text-mode))
+      :hook ((text-mode . flyspell-mode)
+             (org-mode . flyspell-mode)
+             (prog-mode . flyspell-prog-mode)))
+    )
 #+END_SRC
 
 ** COMMENT Slack
