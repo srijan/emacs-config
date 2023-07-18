@@ -530,6 +530,7 @@ Here's how we start:
     :custom
     (denote-directory (expand-file-name "~/ndxrd-uxxs3/notes/"))
     (denote-known-keywords '("emacs" "philosophy" "politics" "economics"))
+    (denote-file-type 'markdown-yaml)
     (denote-infer-keywords t)
     (denote-sort-keywords t)
     (denote-date-prompt-use-org-read-date t)
