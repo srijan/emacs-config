@@ -119,7 +119,7 @@ Here's how we start:
   ;; (set-face-attribute 'default nil :font "Iosevka Comfy Duo" :height 140)
   ;; (when my-linux-p
   ;;   (set-face-attribute 'default nil :font "Berkeley Mono" :height 140))
-  (when my-linux-p
+
     (use-package fontaine
       :custom
       (fontaine-presets
@@ -161,9 +161,9 @@ Here's how we start:
           :line-spacing nil)))
       :config
       (fontaine-set-preset 'berkeley-regular)
-      ))
-  (when my-windows-p
-    (set-face-attribute 'default nil :font "FiraCode NFM" :height 140))
+      )
+
+
 
 
   ;; Themes
