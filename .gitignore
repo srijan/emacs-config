@@ -7,5 +7,6 @@ transient
 eshell
 .lsp-session-v1
 emojis
+tree-sitter/*
 straight/*
 !straight/versions

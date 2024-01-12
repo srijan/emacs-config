@@ -448,6 +448,7 @@ Here's how we start:
                                 ))
 
     :config
+    ;; (setq org-agenda-prefix-format '((agenda . " %i %-12:c%?-12t%-6e% s")))
     ;; So that we can jump back
     (advice-add 'org-open-at-point :before #'evil-set-jump)
 
@@ -527,6 +528,7 @@ Here's how we start:
 ** Notes
 #+begin_src emacs-lisp
   (use-package denote
+    ;; :demand
     :custom
     (denote-directory (expand-file-name "~/ndxrd-uxxs3/notes/"))
     (denote-known-keywords '("emacs" "philosophy" "politics" "economics"))
@@ -537,15 +539,15 @@ Here's how we start:
     (denote-backlinks-show-context t)
     (denote-templates
      `((weekly-review . ,(f-read (expand-file-name
-                                  "templates/weekly-review.org"
+                                  "templates/weekly-review.md"
                                   user-emacs-directory)))))
     :config
     (defun my-weekly-review-journal ()
       "Create an entry tagged 'weeklyreview' with the year and week as
-       its title using the 'weekly-review' template. If a note for
-       the current week exists, visit it.  If multiple entries
-       exist, prompt with completion for a choice between them.
-       Else create a new file."
+         its title using the 'weekly-review' template. If a note for
+         the current week exists, visit it.  If multiple entries
+         exist, prompt with completion for a choice between them.
+         Else create a new file."
       (interactive)
       (let* ((denote-directory (concat denote-directory "journals/"))
              ;; Year corresponding to ISO week + ISO week
@@ -562,9 +564,9 @@ Here's how we start:
           (denote week '("weeklyreview") nil nil nil 'weekly-review)))))
     (defun my-denote-journal ()
       "Create an entry tagged 'journal' with the date as its title.
-       If a journal for the current day exists, visit it.  If multiple
-       entries exist, prompt with completion for a choice between them.
-       Else create a new file."
+         If a journal for the current day exists, visit it.  If multiple
+         entries exist, prompt with completion for a choice between them.
+         Else create a new file."
       (interactive)
       (let* ((denote-directory (concat denote-directory "journals/"))
              (today (format-time-string "%A %e %B %Y"))
@@ -577,11 +579,16 @@ Here's how we start:
           (find-file (car files)))
          (t
           (denote today '("journal"))))))
+    :hook (dired-mode . denote-dired-mode)
+    ;; :bind (map :global-map
+    ;;            ("C-c n d" . (dired-jump denote-directory)))
     :bind
     ("C-c n n" . denote)
     ("C-c n j" . my-denote-journal)
     ("C-c n r" . my-weekly-review-journal)
     )
+  (use-package denote-menu
+    :after denote)
   (use-package consult-notes
     :init
     (require 'denote)
@@ -606,7 +613,7 @@ Here's how we start:
   ;; show the ediff command buffer in the same frame
   (add-to-list 'command-switch-alist '("-diff" . my/command-line-diff)))
 #+END_SRC
-** COMMENT File tree
+** File tree
 #+begin_src emacs-lisp
   (use-package treemacs
     :init
@@ -713,8 +720,8 @@ Here's how we start:
     (tabspaces-remove-to-default t)
     (tabspaces-include-buffers '("*scratch*" "*Messages*" "*Warnings*"))
     ;; sessions
-    (tabspaces-session t)
-    (tabspaces-session-auto-restore t)
+    (tabspaces-session 'nil)
+    (tabspaces-session-auto-restore 'nil)
 
     :config
     ;; consult-specific
@@ -761,6 +768,29 @@ Here's how we start:
     :after tab-bar
     :config
     (keycast-tab-bar-mode 1))
+#+END_SRC
+** COMMENT Workspaces - setup tabs on keybinding
+#+BEGIN_SRC emacs-lisp
+  (defun getting-ready ()
+    "Start my emacs tabs and utils"
+    (interactive)
+    ;; (toggle-frame-maximized)
+    (tab-rename "mu4e")
+    (mu4e t) ;; Run in background
+    ;; A hack to let mu4e open
+    (sleep-for 0.5)
+    (mu4e--main-view)
+    (tabspaces-switch-or-create-workspace "feeds")
+    (elfeed)
+    (tabspaces-switch-or-create-workspace "notes")
+    (dired "~/ndxrd-uxxs3/notes/")
+    (tabspaces-switch-or-create-workspace "gtd")
+    (find-file "~/ndxrd-uxxs3/org/inbox.org")
+    ;; (org-gtd-engage)
+    (tabspaces-switch-or-create-workspace "config")
+    (find-file "~/.config/s-emacs/config.org")
+    )
+  (global-set-key (kbd "C-c r") 'getting-ready)
 #+END_SRC
 ** COMMENT Workspaces - perspective
 #+begin_src emacs-lisp
@@ -1179,6 +1209,7 @@ WARN: This makes emacs on Windows extremely slow
   (use-package json-mode)
   (when my-windows-p
     (use-package ahk-mode))
+  (use-package php-mode)
 #+END_SRC
 ** Erlang & LSP
 #+BEGIN_SRC emacs-lisp
