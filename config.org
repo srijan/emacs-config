@@ -440,7 +440,7 @@ Here's how we start:
     (org-log-into-drawer t)
     (org-log-done 'time)
     (org-tag-persistent-alist '((:startgroup . nil)
-                                ("@computer") ("@mail") ("@errands")
+                                ("@computer") ("@mail") ("@errands") ("@calls")
                                 (:endgroup . nil) (:startgroup . nil)
                                 ("@home") ("@office") ("@anywhere")
                                 (:endgroup . nil)
