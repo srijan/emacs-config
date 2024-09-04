@@ -231,7 +231,7 @@ Here's how we start:
   (setq initial-scratch-message nil)
 
 #+end_src
-** Windows and Tabs
+** Windows
 #+BEGIN_SRC emacs-lisp
 
   ;; Switching between windows. Use `ace-window`, configure using :init and :bind
@@ -243,30 +243,56 @@ Here's how we start:
   ;; Open the config file
   (global-set-key (kbd "C-x ,") (lambda() (interactive) (find-file (locate-user-emacs-file "config.org"))))
 
+#+END_SRC
+** COMMENT Tabs
+#+BEGIN_SRC emacs-lisp
   (use-package intuitive-tab-line
-    :disabled
     :straight (:type git :host github :repo "thread314/intuitive-tab-line-mode")
-    ;; :load-path "git/intuitive-tab-line-mode"
     :custom
     (tab-line-tabs-function 'intuitive-tab-line-buffers-list)
     (tab-line-switch-cycling t)
     :config
     (global-tab-line-mode 1)
     (recentf-mode 1)
+    (defun my-tab-buffers-fun (&rest _args)
+      "Create a tab for the current buffer."
+      (interactive)
+      (if
+          (and
+           (not (seq-contains-p intuitive-tab-line--current-tab-list (current-buffer))) ;;Exclude if already has a tab
+           ;; (not (string-match (rx "magit") (buffer-name (current-buffer)))) ;;Exclude magit
+           ;; (not (string-match (rx "COMMIT_EDITMSG") (buffer-name (current-buffer)))) ;;Exclude magit and edit msg
+           ;; (not (string-match (rx "CAPTURE-") (buffer-name (current-buffer)))) ;;Exclude capture buffer
+           ;; (not (string-match (rx "*org-roam*") (buffer-name (current-buffer)))) ;;Exclude org-roam buffer
+           (or
+            ;;Define any buffers you would always like to be given their own tab here.
+            (buffer-file-name (current-buffer)) ;;Include all file buffers
+            (buffer-local-value 'list-buffers-directory (current-buffer)) ;;Include Dired Buffers
+            (string-match (rx "*help") (buffer-name (current-buffer))) ;;Include Help Buffers
+            (string-match (rx "*mu4e") (buffer-name (current-buffer))) ;;Include mu4e buffers
+            (string-match (rx "*elfeed") (buffer-name (current-buffer))) ;;Include elfeed buffers
+            (string-match (rx "*Org") (buffer-name (current-buffer))) ;;Include org buffers
+            (buffer-base-buffer (current-buffer)) ;;Include Indirect Buffers
+            ))
+          (setq intuitive-tab-line--current-tab-list (append intuitive-tab-line--current-tab-list (list (current-buffer)))))
+      (setq intuitive-tab-line--current-tab-list (seq-remove (lambda (elt) (not (buffer-name elt))) intuitive-tab-line--current-tab-list))
+      (force-mode-line-update))
+    (advice-add 'intuitive-tab-line-add-current-buffer-to-tab :override #'my-tab-buffers-fun)
     (setq
      tab-line-new-button-show nil  ;; do not show add-new button
      tab-line-close-button-show nil  ;; do not show close button
      tab-line-separator " "  ;; delimitation between tabs
-     )
-    :bind
-    ("C-<prior>" . tab-line-switch-to-prev-tab)
-    ("C-<iso-lefttab>" . tab-line-switch-to-prev-tab)
-    ("C-<next>" . tab-line-switch-to-next-tab)
-    ("C-<tab>" . tab-line-switch-to-next-tab)
-    ("C-S-<prior>" . intuitive-tab-line-shift-tab-left)
-    ("C-S-<next>" . intuitive-tab-line-shift-tab-right)
-    ("C-S-t" . recentf-open-most-recent-file))
-#+END_SRC
+     ))
+
+  (global-set-key (kbd "C-<prior>") 'tab-line-switch-to-prev-tab)
+  (global-set-key (kbd "C-<iso-lefttab>") 'tab-line-switch-to-prev-tab)
+  (global-set-key (kbd "C-<next>") 'tab-line-switch-to-next-tab)
+  (global-set-key (kbd "C-<tab>") 'tab-line-switch-to-next-tab)
+  (global-set-key (kbd "C-S-<prior>") 'intuitive-tab-line-shift-tab-left)
+  (global-set-key (kbd "C-S-<next>") 'intuitive-tab-line-shift-tab-right)
+  (global-set-key (kbd "C-S-t") 'recentf-open-most-recent-file)
+
+  #+END_SRC
 ** Backups
 #+begin_src emacs-lisp
 ;; Backup
@@ -718,7 +744,7 @@ Here's how we start:
   (global-set-key (kbd "C-S-<next>") 'intuitive-tab-line-shift-tab-right)
   (global-set-key (kbd "C-S-t") 'recentf-open-most-recent-file)
 #+END_SRC
-** COMMENT Workspaces - beframe
+** Workspaces - beframe
 #+begin_src emacs-lisp
   (use-package beframe
     :demand
@@ -726,6 +752,34 @@ Here's how we start:
     (beframe-functions-in-frames '(project-prompt-project-dir))
     :config
     (beframe-mode 1)
+    (defvar consult-buffer-sources)
+    (declare-function consult--buffer-state "consult")
+
+    (with-eval-after-load 'consult
+      (defface beframe-buffer
+        '((t :inherit font-lock-string-face))
+        "Face for `consult' framed buffers.")
+
+      (defun my-beframe-buffer-names-sorted (&optional frame)
+        "Return the list of buffers from `beframe-buffer-names' sorted by visibility.
+    With optional argument FRAME, return the list of buffers of FRAME."
+        (beframe-buffer-names frame :sort #'beframe-buffer-sort-visibility))
+
+      (defvar beframe-consult-source
+        `( :name     "Frame-specific buffers (current frame)"
+           :narrow   ?F
+           :category buffer
+           :face     beframe-buffer
+           :history  beframe-history
+           :items    ,#'my-beframe-buffer-names-sorted
+           :action   ,#'switch-to-buffer
+           :state    ,#'consult--buffer-state))
+
+      (add-to-list 'consult-buffer-sources 'beframe-consult-source))
+
+    (define-key global-map (kbd "C-c b") #'beframe-prefix-map)
+    (global-set-key (kbd "C-b") 'consult-buffer)
+    (define-key evil-normal-state-map (kbd "C-b") 'consult-buffer)
     )
 
 #+end_src
