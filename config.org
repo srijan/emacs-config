@@ -36,6 +36,7 @@ Here's how we start:
   (use-package straight
     :custom
     (straight-use-package-by-default t)
+    (package-install-upgrade-built-in t)
     (straight-host-usernames '((github    . "srijan"))))
 
   ;; Move customization variables to a separate file and load it
@@ -94,6 +95,10 @@ Here's how we start:
   (add-hook 'text-mode-hook
             'variable-pitch-mode)
 
+  (setq visible-bell t)
+
+  (setq save-interprogram-paste-before-kill t)
+
 #+end_src
 
 ** Looks & Themes
@@ -120,51 +125,61 @@ Here's how we start:
   ;; (when my-linux-p
   ;;   (set-face-attribute 'default nil :font "Berkeley Mono" :height 140))
 
-    (use-package fontaine
-      :custom
-      (fontaine-presets
-       '(
-         (iosevka-regular
-          :default-family "Iosevka Comfy"
-          :default-height 120
-          :variable-pitch-family "Iosevka Comfy Duo"
-          )
-         (berkeley-regular
-          :default-family "Berkeley Mono"
-          :default-height 120
-          :line-spacing 0.1
-          :variable-pitch-family "Berkeley Mono Variable"
-          ;; :variable-pitch-family "Merriweather Sans Light"
-          ;; :variable-pitch-height 0.96
-          )
-         (berkeley-large
-          :inherit berkeley-regular
-          :default-height 160
-          )
-         (t
-          :default-family "Iosevka Comfy"
-          :default-weight regular
-          :default-height 120
-          :fixed-pitch-family nil ; falls back to :default-family
-          :fixed-pitch-weight nil ; falls back to :default-weight
-          :fixed-pitch-height 1.0
-          :fixed-pitch-serif-family nil ; falls back to :default-family
-          :fixed-pitch-serif-weight nil ; falls back to :default-weight
-          :fixed-pitch-serif-height 1.0
-          :variable-pitch-family "Iosevka Comfy Duo"
-          :variable-pitch-weight nil
-          :variable-pitch-height 1.0
-          :bold-family nil ; use whatever the underlying face has
-          :bold-weight bold
-          :italic-family nil
-          :italic-slant italic
-          :line-spacing nil)))
-      :config
-      (fontaine-set-preset 'berkeley-regular)
-      )
+  (use-package fontaine
+    :custom
+    (fontaine-presets
+     '(
+       (iosevka-regular
+        :default-family "Iosevka Comfy"
+        :default-height 120
+        :variable-pitch-family "Iosevka Comfy Duo"
+        )
+       (iawriter-regular
+        :default-family "iMWritingMono Nerd Font"
+        :default-height 120
+        :line-spacing 0.1
+        :variable-pitch-family "iMWritingDuo Nerd Font Propo"
+        ;; :variable-pitch-family "Merriweather Sans Light"
+        ;; :variable-pitch-height 0.96
+        )
+       (berkeley-regular
+        :default-family "Berkeley Mono"
+        :default-height 120
+        :line-spacing 0.1
+        :variable-pitch-family "Berkeley Mono Variable"
+        ;; :variable-pitch-family "Merriweather Sans Light"
+        ;; :variable-pitch-height 0.96
+        )
+       (berkeley-large
+        :inherit berkeley-regular
+        :default-height 160
+        )
+       (t
+        :default-family "Iosevka Comfy"
+        :default-weight regular
+        :default-height 120
+        :fixed-pitch-family nil ; falls back to :default-family
+        :fixed-pitch-weight nil ; falls back to :default-weight
+        :fixed-pitch-height 1.0
+        :fixed-pitch-serif-family nil ; falls back to :default-family
+        :fixed-pitch-serif-weight nil ; falls back to :default-weight
+        :fixed-pitch-serif-height 1.0
+        :variable-pitch-family "Iosevka Comfy Duo"
+        :variable-pitch-weight nil
+        :variable-pitch-height 1.0
+        :bold-family nil ; use whatever the underlying face has
+        :bold-weight bold
+        :italic-family nil
+        :italic-slant italic
+        :line-spacing nil)))
+    :config
+    (fontaine-set-preset 'berkeley-regular)
+    )
 
-
-
+  (use-package emoji
+    :straight (:type built-in)
+    :bind (("C-c e" . emoji-search))
+    )
 
   ;; Themes
   ;; (use-package doom-themes
@@ -190,7 +205,7 @@ Here's how we start:
   (use-package ef-themes
     :demand
     :custom
-    (ef-themes-to-toggle '(ef-elea-light ef-elea-dark))
+    (ef-themes-to-toggle '(ef-maris-light ef-maris-dark))
     (ef-themes-headings
      '((0 . (variable-pitch semibold 1.2))
        (1 . (variable-pitch semibold 1.1))
@@ -210,7 +225,7 @@ Here's how we start:
          `(mode-line ((,c :background ,bg-mode-line :foreground ,fg-mode-line :box (:line-width 1 :color ,fg-dim))))
          `(mode-line-inactive ((,c :box (:line-width 1 :color ,bg-active)))))))
     )
-  (ef-themes-select 'ef-elea-dark)
+  (ef-themes-select 'ef-maris-dark)
   (use-package olivetti
     :custom
     (olivetti-style 'fancy)
@@ -243,10 +258,13 @@ Here's how we start:
   ;; Open the config file
   (global-set-key (kbd "C-x ,") (lambda() (interactive) (find-file (locate-user-emacs-file "config.org"))))
 
+  (winner-mode 1)
+
 #+END_SRC
-** COMMENT Tabs
+** Tabs
 #+BEGIN_SRC emacs-lisp
   (use-package intuitive-tab-line
+    :disabled t
     :straight (:type git :host github :repo "thread314/intuitive-tab-line-mode")
     :custom
     (tab-line-tabs-function 'intuitive-tab-line-buffers-list)
@@ -283,33 +301,53 @@ Here's how we start:
      tab-line-close-button-show nil  ;; do not show close button
      tab-line-separator " "  ;; delimitation between tabs
      ))
+#+END_SRC
 
-  (global-set-key (kbd "C-<prior>") 'tab-line-switch-to-prev-tab)
-  (global-set-key (kbd "C-<iso-lefttab>") 'tab-line-switch-to-prev-tab)
-  (global-set-key (kbd "C-<next>") 'tab-line-switch-to-next-tab)
-  (global-set-key (kbd "C-<tab>") 'tab-line-switch-to-next-tab)
-  (global-set-key (kbd "C-S-<prior>") 'intuitive-tab-line-shift-tab-left)
-  (global-set-key (kbd "C-S-<next>") 'intuitive-tab-line-shift-tab-right)
-  (global-set-key (kbd "C-S-t") 'recentf-open-most-recent-file)
+#+BEGIN_SRC emacs-lisp
+  (use-package tab-line
+    :demand t
+    :bind
+    (("C-<iso-lefttab>" . tab-line-switch-to-prev-tab)
+     ("C-<tab>" . tab-line-switch-to-next-tab))
+    :config
+    (global-tab-line-mode 1)
+    (setq
+     tab-line-new-button-show nil
+     tab-line-close-button-show nil))
+
+  ;; (global-set-key (kbd "C-<iso-lefttab>") 'tab-line-switch-to-prev-tab)
+  ;; (global-set-key (kbd "C-<tab>") 'tab-line-switch-to-next-tab)
+
+  ;; (global-set-key (kbd "C-<prior>") 'tab-line-switch-to-prev-tab)
+  ;; (global-set-key (kbd "C-<iso-lefttab>") 'tab-line-switch-to-prev-tab)
+  ;; (global-set-key (kbd "C-<next>") 'tab-line-switch-to-next-tab)
+  ;; (global-set-key (kbd "C-<tab>") 'tab-line-switch-to-next-tab)
+  ;; (global-set-key (kbd "C-S-<prior>") 'intuitive-tab-line-shift-tab-left)
+  ;; (global-set-key (kbd "C-S-<next>") 'intuitive-tab-line-shift-tab-right)
+  ;; (global-set-key (kbd "C-S-t") 'recentf-open-most-recent-file)
 
   #+END_SRC
-** Backups
+** Backups and Locks
 #+begin_src emacs-lisp
-;; Backup
-(setq backup-directory-alist '(("." . "~/.backups"))
-      make-backup-files t     ; backup of a file the first time it is saved.
-      backup-by-copying t     ; don't clobber symlinks
-      version-control t       ; version numbers for backup files
-      delete-old-versions t   ; delete excess backup files silently
-      kept-old-versions 6     ; oldest versions to keep when a new numbered
-                              ;  backup is made (default: 2)
-      kept-new-versions 9     ; newest versions to keep when a new numbered
-                              ;  backup is made (default: 2)
-      auto-save-default t     ; auto-save every buffer that visits a file
-      auto-save-timeout 20    ; number of seconds idle time before auto-save
-                              ;  (default: 30)
-      auto-save-interval 200)  ; number of keystrokes between auto-saves
-                              ;  (default: 300)
+  ;; Backup
+  (setq backup-directory-alist '(("." . "~/.backups"))
+        make-backup-files t     ; backup of a file the first time it is saved.
+        backup-by-copying t     ; don't clobber symlinks
+        version-control t       ; version numbers for backup files
+        delete-old-versions t   ; delete excess backup files silently
+        kept-old-versions 6     ; oldest versions to keep when a new numbered
+                                          ;  backup is made (default: 2)
+        kept-new-versions 9     ; newest versions to keep when a new numbered
+                                          ;  backup is made (default: 2)
+        auto-save-default t     ; auto-save every buffer that visits a file
+        auto-save-timeout 20    ; number of seconds idle time before auto-save
+                                          ;  (default: 30)
+        auto-save-interval 200  ; number of keystrokes between auto-saves
+                                          ;  (default: 300)
+        remote-file-name-inhibit-auto-save t
+        remote-file-name-inhibit-locks t
+        create-lockfiles nil
+        )
 #+end_src
 ** Evil
 #+BEGIN_SRC emacs-lisp
@@ -468,12 +506,18 @@ Here's how we start:
     (org-tag-persistent-alist '((:startgroup . nil)
                                 ("@computer") ("@mail") ("@errands") ("@calls")
                                 (:endgroup . nil) (:startgroup . nil)
-                                ("@home") ("@office") ("@anywhere")
+                                ("@tz-ist") ("@tz-est") ("@anytime")
                                 (:endgroup . nil)
-                                ("@fun") ("@agenda")
+                                ("@fun") ("@agenda") ("@home") ("@anywhere")
                                 ))
-
+    (org-capture-templates
+     '(
+       ("i" "Inbox" entry (file org-gtd-inbox-path) "* %?\n%U\n%i"
+        :kill-buffer t)
+       ("l" "Inbox with link" entry (file org-gtd-inbox-path) "* %?\n%U\n%i\n%a"
+        :kill-buffer t)))
     :config
+    (require 'org-tempo)
     ;; (setq org-agenda-prefix-format '((agenda . " %i %-12:c%?-12t%-6e% s")))
     ;; So that we can jump back
     (advice-add 'org-open-at-point :before #'evil-set-jump)
@@ -495,16 +539,29 @@ Here's how we start:
     (defun org-capture-inbox ()
       (interactive)
       (call-interactively 'org-store-link)
-      (org-capture nil "i"))
+      (org-gtd-capture nil "i"))
     (defun org-capture-mail ()
       (interactive)
       (call-interactively 'org-store-link)
       (org-capture nil "@"))
+    (defun org-open-inbox ()
+      (interactive)
+      (find-file "~/ndxrd-uxxs3/org/inbox.org")
+      )
     :bind
     ("C-c i" . org-capture-inbox)
+    ("C-c j" . org-open-inbox)
     ("C-c a" . org-agenda)
     ("C-c l" . org-store-link)
     )
+  (use-package org-protocol
+    :straight (:type built-in)
+    :ensure org-protocol
+    :custom
+    (org-protocol-default-template-key "l")
+    )
+#+END_SRC
+#+BEGIN_SRC emacs-lisp
   (defun my/org-gtd-maybe-set-tags ()
     "Use as a hook when decorating items after clarifying them."
     (unless (org-gtd-organize-type-member-p '(trash knowledge quick-action incubated project-heading))
@@ -513,6 +570,9 @@ Here's how we start:
     "Use as a hook when decorating items after clarifying them."
     (unless (org-gtd-organize-type-member-p '(trash knowledge quick-action incubated project-heading))
       (org-set-effort)))
+
+  (use-package org-contrib)
+  (require 'ox-confluence)
 
   (use-package org-gtd
     :straight (:type git :host github :repo "Trevoke/org-gtd.el")
@@ -530,6 +590,7 @@ Here's how we start:
     (org-gtd-organize-hooks '(org-gtd-areas-of-focus--set my/org-gtd-maybe-set-tags my/org-gtd-maybe-set-effort))
     (org-gtd-refile-to-any-target nil)
     (org-gtd-engage-prefix-width 24)
+    (org-gtd-capture-templates org-capture-templates)
     :config
     (org-edna-mode 1)
     (org-gtd-mode 1)
@@ -551,13 +612,58 @@ Here's how we start:
      ))
 
 #+END_SRC
+** Popup frames
+#+BEGIN_SRC emacs-lisp
+  ;;;; Run commands in a popup frame
+
+  (defun prot-window-delete-popup-frame (&rest _)
+    "Kill selected selected frame if it has parameter `prot-window-popup-frame`.
+  Use this function via a hook."
+    (when (frame-parameter nil 'prot-window-popup-frame)
+      (delete-frame)))
+
+  (defmacro prot-window-define-with-popup-frame (command)
+    "Define interactive function which calls COMMAND in a new frame.
+  Make the new frame have the `prot-window-popup-frame' parameter."
+    `(defun ,(intern (format "prot-window-popup-%s" command)) ()
+       ,(format "Run `%s' in a popup frame with `prot-window-popup-frame' parameter.
+  Also see `prot-window-delete-popup-frame'." command)
+       (interactive)
+       (let ((frame (make-frame '((prot-window-popup-frame . t)))))
+         (select-frame frame)
+         (switch-to-buffer " prot-window-hidden-buffer-for-popup-frame")
+         (condition-case nil
+             (call-interactively ',command)
+           ((quit error user-error)
+            (delete-frame frame))))))
+
+  (declare-function org-capture "org-capture" (&optional goto keys))
+  (defvar org-capture-after-finalize-hook)
+
+  ;;;###autoload (autoload 'prot-window-popup-org-capture "prot-window")
+  (prot-window-define-with-popup-frame org-capture)
+
+  (add-hook 'org-capture-after-finalize-hook #'prot-window-delete-popup-frame)
+
+  ;; (declare-function tmr "tmr" (time &optional description acknowledgep))
+  ;; (defvar tmr-timer-created-functions)
+
+  ;;;###autoload (autoload 'prot-window-popup-tmr "prot-window")
+  ;; (prot-window-define-with-popup-frame tmr)
+
+  ;; (add-hook 'tmr-timer-created-functions #'prot-window-delete-popup-frame)C
+#+END_SRC
 ** Notes
 #+begin_src emacs-lisp
   (use-package denote
     ;; :demand
+    :init
+    (require 'denote-journal-extras)
     :custom
     (denote-directory (expand-file-name "~/ndxrd-uxxs3/notes/"))
+    (denote-journal-extras-directory (expand-file-name "~/ndxrd-uxxs3/notes/journals/"))
     (denote-known-keywords '("emacs" "philosophy" "politics" "economics"))
+    (denote-journal-extras-title-format 'day-date-month-year)
     (denote-file-type 'markdown-yaml)
     (denote-infer-keywords t)
     (denote-sort-keywords t)
@@ -566,7 +672,8 @@ Here's how we start:
     (denote-templates
      `((weekly-review . ,(f-read (expand-file-name
                                   "templates/weekly-review.md"
-                                  user-emacs-directory)))))
+                                  user-emacs-directory)))
+       (journal . "")))
     :config
     (defun my-weekly-review-journal ()
       "Create an entry tagged 'weeklyreview' with the year and week as
@@ -578,8 +685,8 @@ Here's how we start:
       (let* ((denote-directory (concat denote-directory "journals/"))
              ;; Year corresponding to ISO week + ISO week
              (week (format-time-string "%G W%V"))
-             (string (denote-sluggify week))
-             (files (denote-directory-files-matching-regexp string))
+             (string (denote-sluggify 'title week))
+             (files (denote-directory-files string))
              )
         (cond
          ((> (length files) 1)
@@ -588,29 +695,12 @@ Here's how we start:
           (find-file (car files)))
          (t
           (denote week '("weeklyreview") nil nil nil 'weekly-review)))))
-    (defun my-denote-journal ()
-      "Create an entry tagged 'journal' with the date as its title.
-         If a journal for the current day exists, visit it.  If multiple
-         entries exist, prompt with completion for a choice between them.
-         Else create a new file."
-      (interactive)
-      (let* ((denote-directory (concat denote-directory "journals/"))
-             (today (format-time-string "%A %e %B %Y"))
-             (string (denote-sluggify today))
-             (files (denote-directory-files-matching-regexp string)))
-        (cond
-         ((> (length files) 1)
-          (find-file (completing-read "Select file: " files nil :require-match)))
-         (files
-          (find-file (car files)))
-         (t
-          (denote today '("journal"))))))
     :hook (dired-mode . denote-dired-mode)
     ;; :bind (map :global-map
     ;;            ("C-c n d" . (dired-jump denote-directory)))
     :bind
     ("C-c n n" . denote)
-    ("C-c n j" . my-denote-journal)
+    ("C-c n j" . denote-journal-extras-new-or-existing-entry)
     ("C-c n r" . my-weekly-review-journal)
     )
   (use-package denote-menu
@@ -622,6 +712,7 @@ Here's how we start:
     (consult-notes-denote-mode 1)
     :bind
     ("C-c n f" . consult-notes)
+    ("C-c n s" . consult-notes-search-in-all-notes)
     )
 
 #+end_src
@@ -722,29 +813,8 @@ Here's how we start:
 
 ** Tab line
 #+BEGIN_SRC emacs-lisp
-  (use-package intuitive-tab-line
-    :straight (:type git :host github :repo "thread314/intuitive-tab-line-mode")
-    :custom
-    (tab-line-tabs-function 'intuitive-tab-line-buffers-list)
-    (tab-line-switch-cycling t)
-    :config
-    (global-tab-line-mode 1)
-    (recentf-mode 1)
-    (setq
-     tab-line-new-button-show nil  ;; do not show add-new button
-     tab-line-close-button-show nil  ;; do not show close button
-     tab-line-separator " "  ;; delimitation between tabs
-     ))
-
-  (global-set-key (kbd "C-<prior>") 'tab-line-switch-to-prev-tab)
-  (global-set-key (kbd "C-<iso-lefttab>") 'tab-line-switch-to-prev-tab)
-  (global-set-key (kbd "C-<next>") 'tab-line-switch-to-next-tab)
-  (global-set-key (kbd "C-<tab>") 'tab-line-switch-to-next-tab)
-  (global-set-key (kbd "C-S-<prior>") 'intuitive-tab-line-shift-tab-left)
-  (global-set-key (kbd "C-S-<next>") 'intuitive-tab-line-shift-tab-right)
-  (global-set-key (kbd "C-S-t") 'recentf-open-most-recent-file)
 #+END_SRC
-** Workspaces - beframe
+** COMMENT Workspaces - beframe
 #+begin_src emacs-lisp
   (use-package beframe
     :demand
@@ -780,6 +850,7 @@ Here's how we start:
     (define-key global-map (kbd "C-c b") #'beframe-prefix-map)
     (global-set-key (kbd "C-b") 'consult-buffer)
     (define-key evil-normal-state-map (kbd "C-b") 'consult-buffer)
+    ;; TODO: ↑ does not work in org agenda
     )
 
 #+end_src
@@ -1022,8 +1093,8 @@ Here's how we start:
            ("C-c M-x" . consult-mode-command)
            ("C-c h" . consult-history)
            ("C-c k" . consult-kmacro)
-           ("C-c m" . consult-man)
-           ("C-c i" . consult-info)
+           ;; ("C-c m" . consult-man)
+           ;; ("C-c i" . consult-info)
            ([remap Info-search] . consult-info)
            ;; C-x bindings in `ctl-x-map'
            ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
@@ -1152,42 +1223,44 @@ From: https://andreyorst.gitlab.io/posts/2022-07-16-project-el-enhancements/
 WARN: This makes emacs on Windows extremely slow
 #+BEGIN_SRC emacs-lisp
   (when my-linux-p
-    (use-package project
-      :config
-      (defcustom project-root-markers
-        '(".project")
-        "Files or directories that indicate the root of a project."
-        :type '(repeat string)
-        :group 'project)
-      (defun project-root-p (path)
-        "Check if the current PATH has any of the project root markers."
-        (catch 'found
-          (dolist (marker project-root-markers)
-            (when (file-exists-p (concat path marker))
-              (throw 'found marker)))))
+    (use-package project))
+      ;; :config
+      ;; (defcustom project-root-markers
+      ;;   '(".project")
+      ;;   "Files or directories that indicate the root of a project."
+      ;;   :type '(repeat string)
+      ;;   :group 'project)
+      ;; (defun project-root-p (path)
+      ;;   "Check if the current PATH has any of the project root markers."
+      ;;   (catch 'found
+      ;;     (dolist (marker project-root-markers)
+      ;;       (when (file-exists-p (concat path marker))
+      ;;         (throw 'found marker)))))
+      ;; ;; (defun project-find-root (path)
+      ;; ;;   "Search up the PATH for `project-root-markers'."
+      ;; ;;   (when-let ((root (locate-dominating-file path #'project-root-p)))
+      ;; ;;     (cons 'transient (expand-file-name root))))
       ;; (defun project-find-root (path)
       ;;   "Search up the PATH for `project-root-markers'."
-      ;;   (when-let ((root (locate-dominating-file path #'project-root-p)))
-      ;;     (cons 'transient (expand-file-name root))))
-      (defun project-find-root (path)
-        "Search up the PATH for `project-root-markers'."
-        (let ((path (expand-file-name path)))
-          (catch 'found
-            (while (not (equal "/" path))
-              (if (not (project-root-p path))
-                  (setq path (file-name-directory (directory-file-name path)))
-                (throw 'found (cons 'transient path)))))))
-      (add-to-list 'project-find-functions #'project-find-root)
-      ))
+      ;;   (let ((path (expand-file-name path)))
+      ;;     (catch 'found
+      ;;       (while (not (equal "/" path))
+      ;;         (if (not (project-root-p path))
+      ;;             (setq path (file-name-directory (directory-file-name path)))
+      ;;           (throw 'found (cons 'transient path)))))))
+      ;; (add-to-list 'project-find-functions #'project-find-root)
+      ;; ))
 #+END_SRC
 ** Dictionary and spelling
 #+BEGIN_SRC emacs-lisp
   (when my-linux-p
     (setq dictionary-server "localhost")
     (use-package flyspell
-      :hook ((text-mode . flyspell-mode)
+      :hook (
+             ;; (text-mode . flyspell-mode)
              (org-mode . flyspell-mode)
-             (prog-mode . flyspell-prog-mode)))
+             ;; (prog-mode . flyspell-prog-mode)
+             ))
     )
 #+END_SRC
 
@@ -1243,7 +1316,12 @@ WARN: This makes emacs on Windows extremely slow
     :diminish
     :straight (:host github :repo "zerolfx/copilot.el" :files ("dist" "*.el"))
     :ensure t
-    :hook (prog-mode . copilot-mode)
+    :hook (prog-mode . (lambda ()
+                       (interactive)
+                       (unless (file-remote-p default-directory)
+                         (copilot-mode))))
+    :custom
+    (copilot-max-char 1000000)
     :bind (
            ;; ("C-TAB" . 'copilot-accept-completion-by-word)
            ;; ("C-<tab>" . 'copilot-accept-completion-by-word)
@@ -1276,18 +1354,29 @@ WARN: This makes emacs on Windows extremely slow
 
 ** Misc for software dev
 #+BEGIN_SRC emacs-lisp
+  (use-package mermaid-mode)
+  (use-package sql-indent)
 #+END_SRC
-** Language Modes
+*** Language Modes
 #+BEGIN_SRC emacs-lisp
+  (editorconfig-mode 1)
   (use-package markdown-mode
     :mode ("README\\.md\\'" . gfm-mode)
     :init (setq markdown-command '("pandoc" "--from=markdown" "--to=html5"))
     )
   (use-package magit)
   (use-package json-mode)
+  (use-package js
+    :straight (:type built-in)
+    :custom
+    (js-indent-level 2))
   (when my-windows-p
     (use-package ahk-mode))
   (use-package php-mode)
+  ;; (use-package jsonnet-mode)
+  (use-package hierarchy)
+  (use-package tree-mode)
+  (use-package json-navigator)
 #+END_SRC
 ** Erlang & LSP
 #+BEGIN_SRC emacs-lisp
@@ -1308,11 +1397,30 @@ WARN: This makes emacs on Windows extremely slow
                       "/Program Files/Erlang OTP/lib/tools-*/emacs"))))
   (use-package erlang
     :straight nil
-    :hook ((erlang-mode . linum-mode)
+    :hook ((erlang-mode . display-line-numbers-mode)
            (erlang-mode . column-number-mode))
     :init
     )
   (require 'erlang-start)
+  (use-package indy
+    :disabled
+    :custom
+    (setq indy-rules
+          '((erlang-mode . (
+                            ;; ((indy--current 'indy--starts-with "]") (indy--prev-tab -1))
+                            ;; ((indy--prev    'indy--ends-on "[")     (indy--prev-tab 1))
+                            ;; ((indy--prev    'indy--ends-on ",")     (indy--prev-tab))
+
+  			  ((and (indy--current 'indy--starts-with "end")
+  				(indy--prev 'indy--ends-on ") ->"))      (indy--prev-tab))
+  			  ((indy--current 'indy--starts-with "end") (indy--prev-tab -1))
+  			  ((indy--prev 'indy--ends-on ") ->")       (indy--prev-tab 1))
+  			  ((indy--current 'indy--starts-with "]")   (indy--prev-tab -1))
+  			  ((indy--prev 'indy--ends-on "[")          (indy--prev-tab 1))
+  			  ((indy--prev 'indy--ends-on ",")          (indy--prev-tab))
+  			  ))
+  	  )
+          ))
   (use-package elixir-mode)
 
   (use-package eglot
@@ -1359,20 +1467,27 @@ WARN: This makes emacs on Windows extremely slow
 
 ** mu4e
 #+begin_src emacs-lisp
+  (use-package gnus
+    :straight nil
+    :custom
+    (gnus-inhibit-mime-unbuttonizing t)
+    (mm-discouraged-alternatives '("text/html" "text/richtext")))
   (use-package mu4e
     :straight nil
     :if my-linux-p
+    :demand t
     :hook (evil-collection-setup . (lambda (&rest a)
                                      (evil-define-key 'normal mu4e-headers-mode-map "z%" 'mu4e-headers-mark-thread)
                                      ))
     :config
+    (global-set-key (kbd "C-c m") 'mu4e)
     (setq
      ;; mu4e-use-maildirs-extension nil
      mu4e-get-mail-command "systemctl --user start mbsync.service" ;; "mbsync fastmail-all"
-     mu4e-view-prefer-html t
+     mu4e-view-prefer-html nil
      ;; mu4e-update-interval 180
      mu4e-headers-auto-update t
-     mu4e-search-include-related nil
+     mu4e-search-include-related t
      mu4e-compose-signature-auto-include nil
      mu4e-compose-format-flowed t
      mu4e-use-fancy-chars t
@@ -1386,6 +1501,7 @@ WARN: This makes emacs on Windows extremely slow
      mu4e-headers-leave-behavior 'apply
      mu4e-hide-index-messages t
      message-kill-buffer-on-exit t
+     shr-color-visible-luminance-min 80
      )
 
 
@@ -1458,6 +1574,10 @@ WARN: This makes emacs on Windows extremely slow
                     :query "maildir:\"/fastmail/Sent Items\""
                     :key   ?s))
     (add-to-list 'mu4e-bookmarks
+                 '( :name  "Memos"
+                    :query "\"maildir:/fastmail/Memos\""
+                    :key   ?m))
+    (add-to-list 'mu4e-bookmarks
                  '( :name  "Waiting For Support"
                     :query "\"maildir:/fastmail/@Waiting For Support\""
                     :key   ?f))
@@ -1490,7 +1610,7 @@ WARN: This makes emacs on Windows extremely slow
                             (mu4e-message-contact-field-matches
                              msg '(:from :to :cc :bcc) "srijan@fastmail.com")))
             :vars '((user-mail-address . "srijan@fastmail.com")
-                    ;; (mu4e-compose-signature . (concat "Srijan Choudhary\n" "https://www.srijn.net\n"))
+                    (mu4e-compose-signature . (concat "Srijan Choudhary\n" "https://srijan.ch\n"))
                     (mu4e-compose-format-flowed . t)
                     ))
            (make-mu4e-context
@@ -1502,7 +1622,7 @@ WARN: This makes emacs on Windows extremely slow
                             (mu4e-message-contact-field-matches
                              msg '(:from :to :cc :bcc) "srijan4@gmail.com")))
             :vars '((user-mail-address . "srijan4@gmail.com")
-                    ;; (mu4e-compose-signature . (concat "Srijan Choudhary\n" "https://www.srijn.net\n"))
+                    (mu4e-compose-signature . (concat "Srijan Choudhary\n" "https://srijan.ch\n"))
                     (mu4e-compose-format-flowed . t)
                     ))
            (make-mu4e-context
@@ -1514,7 +1634,7 @@ WARN: This makes emacs on Windows extremely slow
                             (mu4e-message-contact-field-matches
                              msg '(:from :to :cc :bcc) "srijan.c@greyorange.com")))
             :vars '((user-mail-address . "srijan.c@greyorange.com")
-                    ;; (mu4e-compose-signature . (concat "Srijan Choudhary\n" "https://www.srijn.net\n"))
+                    (mu4e-compose-signature . "Srijan Choudhary\n")
                     (mu4e-compose-format-flowed . t)
                     ))
            ))
@@ -1524,7 +1644,10 @@ WARN: This makes emacs on Windows extremely slow
     (require 'mu4e-icalendar)
     (mu4e-icalendar-setup)
     (setq mu4e-icalendar-trash-after-reply t)
-
+    (mu4e t) ;; Start mu4e in the background
+    )
+  (use-package mu4e-views
+    :disabled
     )
   (use-package org
     :if my-linux-p
@@ -1537,6 +1660,8 @@ WARN: This makes emacs on Windows extremely slow
     )
 
   (use-package org-msg
+    ;; Issues with mu 1.12 right now
+    :disabled
     :if my-linux-p
     :config
     (setq org-msg-options "html-postamble:nil H:5 num:nil ^:{} toc:nil author:nil email:nil \\n:t"
@@ -1547,10 +1672,10 @@ WARN: This makes emacs on Windows extremely slow
           org-msg-convert-citation t
           org-msg-signature "
 
-  ,#+begin_signature
-  --
-  ,*Srijan Choudhary*
-  ,#+end_signature")
+     ,#+begin_signature
+     --
+     ,*Srijan Choudhary*
+     ,#+end_signature")
     (org-msg-mode)
     )
 

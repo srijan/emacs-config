@@ -1,6 +1,8 @@
 config.el
 *~
 eln-cache
+.cache
+cache
 projects
 smex-items
 transient
